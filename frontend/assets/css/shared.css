@@ -1,0 +1,144 @@
+/* /frontend/assets/css/shared.css */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+:root {
+  --primary-deep: #1a365d;
+  --primary-brand: #2a4365;
+  --accent-glow: #e2e8f0;
+  --accent-warning: #ecc94b;
+  --accent-warning-glow: rgba(236, 201, 75, 0.4);
+  --bg-gradient: linear-gradient(135deg, #1a365d 0%, #2a4365 100%);
+  --body-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --text-dark: #1e293b;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--body-bg);
+  color: var(--text-dark);
+  letter-spacing: -0.011em;
+}
+
+/* Premium Header and Brand Navigation */
+.bg-premium {
+  background: var(--bg-gradient) !important;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+}
+
+.brand-text {
+  letter-spacing: 1px;
+  font-size: 1.25rem;
+}
+
+.text-warning-glow {
+  color: var(--accent-warning) !important;
+  text-shadow: 0 0 8px var(--accent-warning-glow);
+}
+
+.btn-warning-glow {
+  background-color: var(--accent-warning);
+  border-color: var(--accent-warning);
+  box-shadow: 0 4px 12px var(--accent-warning-glow);
+  transition: all 0.25s ease;
+}
+
+.btn-warning-glow:hover {
+  background-color: #d69e2e;
+  border-color: #d69e2e;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(214, 158, 46, 0.5);
+}
+
+/* Navbar active state transition and animation */
+.navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+}
+
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.02);
+}
+
+.navbar-nav .btn-outline-light:hover {
+  color: var(--primary-deep);
+  background-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+/* Footer Link Hovers */
+.hover-light:hover {
+  color: #ffffff !important;
+  transition: color 0.2s ease-in-out;
+}
+
+/* Homepage Hero Banner (Glassmorphism inspired) */
+.hero-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hero-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.06);
+}
+
+.bg-body-tertiary {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e2e8f0 100%) !important;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+/* Premium Visual Elements */
+.premium-card {
+  border: none;
+  border-radius: 12px;
+  background-color: var(--card-bg);
+  box-shadow: 0 4px 20px rgba(148, 163, 184, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(148, 163, 184, 0.16);
+}
+
+.card-header-gradient {
+  background: var(--bg-gradient);
+  color: #ffffff;
+  border-bottom: none;
+  padding: 1.25rem;
+}
+
+/* Forms styling */
+.form-control:focus, .form-select:focus {
+  border-color: #2b6cb0;
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.18);
+}
+
+/* Status badges */
+.badge-pill-status {
+  padding: 0.35em 0.8em;
+  font-weight: 600;
+  border-radius: 30px;
+}
+
+/* Low Stock Warnings pulse animation */
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.low-stock-pulse {
+  animation: pulse-border 2s infinite;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
