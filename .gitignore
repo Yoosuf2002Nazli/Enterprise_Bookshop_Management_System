@@ -1,0 +1,34 @@
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment/config secrets
+.env
+.env.*
+!.env.example
+
+# XAMPP / PHP logs and runtime
+*.log
+php_errors.log
+xampp/php/logs/
+
+# Dependencies and build artifacts
+vendor/
+node_modules/
+dist/
+build/
+
+# Test and coverage artifacts
+coverage/
+.phpunit.result.cache
+
+# Archives
+*.zip
+*.tar
+*.gz
