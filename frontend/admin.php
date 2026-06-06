@@ -3,6 +3,12 @@
 $page_title = "Admin Dashboard - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
+// Access Guard: Ensure user is logged in as admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: login.php');
+    exit;
+}
+
 // Ensure inventory session database is initialized to aggregate metrics
 if (!isset($_SESSION['inventory_db'])) {
     $_SESSION['inventory_db'] = [

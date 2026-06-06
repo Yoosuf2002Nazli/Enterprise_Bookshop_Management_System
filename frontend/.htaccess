@@ -1,0 +1,2 @@
+# /frontend/.htaccess
+ErrorDocument 404 /Enterprise_Bookshop_Management_System/frontend/404.php

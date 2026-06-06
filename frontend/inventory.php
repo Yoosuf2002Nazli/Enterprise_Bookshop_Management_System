@@ -3,6 +3,12 @@
 $page_title = "Inventory Levels - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
+// Access Guard: Ensure user is logged in as admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: login.php');
+    exit;
+}
+
 // Initialize session inventory if not set (Simulated local DB)
 if (!isset($_SESSION['inventory_db'])) {
     $_SESSION['inventory_db'] = [

@@ -155,7 +155,6 @@ if (isset($_GET['add_cart_id'])) {
     <div class="card border-0 shadow-sm p-3 mb-4 rounded-3 bg-white">
       <form method="GET" action="books.php" class="row g-3">
         <!-- Category Pill Selectors -->
-        <input type="hidden" name="category" value="<?php echo escape($selected_category); ?>" id="category_hidden">
         
         <div class="col-12 col-lg-8 d-flex flex-wrap gap-2 align-items-center">
           <span class="text-secondary small fw-bold text-uppercase me-2">Categories:</span>

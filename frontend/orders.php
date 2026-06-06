@@ -3,6 +3,12 @@
 $page_title = "Customer Orders - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
+// Access Guard: Ensure user is logged in as admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: login.php');
+    exit;
+}
+
 // Initialize session orders if not set (Simulated local order DB)
 if (!isset($_SESSION['orders_db'])) {
     $_SESSION['orders_db'] = [
@@ -170,11 +176,11 @@ if (isset($_GET['view_id'])) {
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow">
                           <li><h6 class="dropdown-header">Modify Status Pipeline</h6></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?id=<?php echo $order['id']; ?>&action=Pending"><i class="bi bi-hourglass text-warning"></i> Pending</a></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?id=<?php echo $order['id']; ?>&action=Shipped"><i class="bi bi-truck text-primary"></i> Shipped</a></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?id=<?php echo $order['id']; ?>&action=Delivered"><i class="bi bi-check-circle text-success"></i> Delivered</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Pending"><i class="bi bi-hourglass text-warning"></i> Pending</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Shipped"><i class="bi bi-truck text-primary"></i> Shipped</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Delivered"><i class="bi bi-check-circle text-success"></i> Delivered</a></li>
                           <li><hr class="dropdown-divider"></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="orders.php?id=<?php echo $order['id']; ?>&action=Cancelled"><i class="bi bi-x-circle text-danger"></i> Cancel Order</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Cancelled"><i class="bi bi-x-circle text-danger"></i> Cancel Order</a></li>
                         </ul>
                       </div>
                     </td>
