@@ -12,6 +12,17 @@ Bookshop Management System is a university semester project built with PHP and M
 - MySQL
 - XAMPP (local Apache + MySQL)
 
+### Why We Chose This Stack
+We selected this technology stack to satisfy the **mandatory microservice architecture requirement** while optimizing for **beginner-friendly development and rapid team collaboration**. Here is our rationale:
+
+- **PHP Backend:** Chosen as the primary backend language due to its ease of setup, simplicity in HTTP request handling, and built-in support for microservice patterns. PHP allows each service to be developed and deployed independently with minimal infrastructure complexity.
+- **XAMPP (Apache + MySQL):** Provides an all-in-one local development environment requiring no complex installation or configuration. This enables all team members to set up the development environment in minutes, reducing setup friction for beginners.
+- **Microservice Architecture:** Each business domain (User, Catalog, Inventory, Order, Notification) is implemented as an isolated service with its own database (`user_db`, `catalog_db`, `inventory_db`, `order_db`, `notification_db`). Services communicate via HTTP APIs, following true microservice design principles.
+- **HTML, CSS, JavaScript Frontend:** A lightweight frontend layer that integrates seamlessly with PHP APIs without requiring a heavy JavaScript framework, keeping the learning curve minimal.
+- **Bootstrap:** Provides professional, responsive UI components out of the box, enabling rapid UI development by beginners without extensive CSS expertise.
+
+This stack fulfills the **microservice architecture mandate** while keeping the project accessible to team members with varying levels of experience, making it ideal for a university semester project built by a diverse team.
+
 ## 3. Project Objectives
 - Build a beginner-friendly enterprise-style project structure.
 - Enable parallel development across team members.
