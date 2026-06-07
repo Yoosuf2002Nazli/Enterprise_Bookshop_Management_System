@@ -77,7 +77,7 @@ Detailed guide: `docs/setup-guide.md`
    ```
 4. Move project into `C:\xampp\htdocs\bookshop-management-system`.
 5. Open `http://localhost/phpmyadmin`.
-6. Create/import databases using `database/sql/init_databases.sql`.
+6. Create/import databases using `database/sql/init_databases.sql, database/sql/catalog_service_schema.sql, database/sql/inventory_service_schema.sql`.
 7. Open `http://localhost/bookshop-management-system/`.
 
 ## 7. Database Setup Instructions
