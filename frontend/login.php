@@ -6,43 +6,47 @@ include_once __DIR__ . '/components/config.php';
 $alert_message = '';
 $alert_type = '';
 
-// Handle simulated login submission
+// Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    if (empty($email) || empty($password)) {
-        $alert_message = "Please fill in both fields to log in.";
-        $alert_type = "danger";
-    } else {
-        // Simple mock login logic
-        $_SESSION['user_email'] = $email;
-        // If email contains 'admin', treat as admin
-        if (strpos(strtolower($email), 'admin') !== false) {
-            $_SESSION['user_role'] = 'admin';
-        } else {
-            $_SESSION['user_role'] = 'customer';
-        }
+    $_GET['action'] = 'login';
+    
+    // Capture the JSON response from user-service auth
+    ob_start();
+    require __DIR__ . '/../user-service/api/auth.php';
+    $response = json_decode(ob_get_clean(), true);
+    
+    if ($response && ($response['status'] ?? '') === 'success') {
+        $alert_message = $response['message'] ?? 'Login successful!';
+        $alert_type = 'success';
         
-        $alert_message = "Login successful! Redirecting you...";
-        $alert_type = "success";
-        
-        // Dynamic JavaScript redirect after 1.5s
+        // Redirect user to home screen on successful authentication
         echo "<script>
             setTimeout(function() {
                 window.location.href = 'index.php';
             }, 1500);
         </script>";
+    } else {
+        $alert_message = $response['message'] ?? 'Login failed.';
+        $alert_type = 'danger';
     }
 }
 
-// Handle simulated logout
+// Handle logout action
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    unset($_SESSION['user_email']);
-    unset($_SESSION['user_role']);
-    session_destroy();
-    $alert_message = "You have been logged out successfully.";
-    $alert_type = "info";
+    $_GET['action'] = 'logout';
+    
+    // Capture response from logout handler
+    ob_start();
+    require __DIR__ . '/../user-service/api/auth.php';
+    $response = json_decode(ob_get_clean(), true);
+    
+    if ($response && ($response['status'] ?? '') === 'success') {
+        $alert_message = "You have been logged out successfully.";
+        $alert_type = "info";
+    } else {
+        $alert_message = "Logout failed.";
+        $alert_type = "danger";
+    }
 }
 ?>
 <!DOCTYPE html>

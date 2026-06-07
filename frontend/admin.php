@@ -9,64 +9,32 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-// Ensure inventory session database is initialized to aggregate metrics
-if (!isset($_SESSION['inventory_db'])) {
-    $_SESSION['inventory_db'] = [
-        ['id' => 1, 'title' => 'Introduction to Algorithms', 'isbn' => '978-0262033848', 'category' => 'Technology', 'stock' => 12, 'threshold' => 10],
-        ['id' => 2, 'title' => 'Clean Code', 'isbn' => '978-0132350884', 'category' => 'Technology', 'stock' => 3, 'threshold' => 8],
-        ['id' => 3, 'title' => 'Dune', 'isbn' => '978-0441172719', 'category' => 'Fiction', 'stock' => 25, 'threshold' => 5],
-        ['id' => 4, 'title' => 'The Lean Startup', 'isbn' => '978-0307887894', 'category' => 'Business', 'stock' => 0, 'threshold' => 5],
-        ['id' => 5, 'title' => 'A Brief History of Time', 'isbn' => '978-0553380163', 'category' => 'Science', 'stock' => 8, 'threshold' => 10],
-        ['id' => 6, 'title' => 'Thinking, Fast and Slow', 'isbn' => '978-0374533557', 'category' => 'Science', 'stock' => 15, 'threshold' => 10]
-    ];
-}
+// 1. Fetch live inventory from inventory-service
+ob_start();
+$old_get = $_GET;
+$_GET = [];
+require __DIR__ . '/../inventory-service/api/inventory.php';
+$inv_response = json_decode(ob_get_clean(), true);
+$inventory = $inv_response['data'] ?? [];
+$_GET = $old_get; // restore
 
-// Ensure orders session database is initialized to aggregate metrics
-if (!isset($_SESSION['orders_db'])) {
-    $_SESSION['orders_db'] = [
-        [
-            'id' => 'ORD-2026-98101',
-            'customer' => 'Alice Vance',
-            'email' => 'alice@university.edu',
-            'date' => '2026-05-25 10:42 AM',
-            'total' => 127.49,
-            'status' => 'Pending',
-            'items' => [
-                ['title' => 'Introduction to Algorithms', 'qty' => 1, 'price' => 89.99],
-                ['title' => 'Clean Code', 'qty' => 1, 'price' => 37.50]
-            ]
-        ],
-        [
-            'id' => 'ORD-2026-98102',
-            'customer' => 'Bob Miller',
-            'email' => 'bob.m@university.edu',
-            'date' => '2026-05-24 03:15 PM',
-            'total' => 29.98,
-            'status' => 'Shipped',
-            'items' => [
-                ['title' => 'Dune', 'qty' => 2, 'price' => 14.99]
-            ]
-        ],
-        [
-            'id' => 'ORD-2026-98103',
-            'customer' => 'Charlie Stone',
-            'email' => 'cstone@university.edu',
-            'date' => '2026-05-22 06:12 PM',
-            'total' => 39.99,
-            'status' => 'Delivered',
-            'items' => [
-                ['title' => 'A Brief History of Time', 'qty' => 1, 'price' => 18.99],
-                ['title' => 'Thinking, Fast and Slow', 'qty' => 1, 'price' => 21.00]
-            ]
-        ]
-    ];
-}
+// Populate session inventory to support downstream HTML rendering loops
+$_SESSION['inventory_db'] = $inventory;
 
-// 1. Calculate Real-time Dashboard Metrics
-$catalog_size = count($_SESSION['inventory_db']);
+// 2. Fetch live orders from order-service
+ob_start();
+$old_get = $_GET;
+$_GET = [];
+require __DIR__ . '/../order-service/api/orders.php';
+$orders_response = json_decode(ob_get_clean(), true);
+$orders = $orders_response['data'] ?? [];
+$_GET = $old_get; // restore
+
+// 3. Calculate Real-time Dashboard Metrics from live data
+$catalog_size = count($inventory);
 
 $low_stock_count = 0;
-foreach ($_SESSION['inventory_db'] as $item) {
+foreach ($inventory as $item) {
     if ($item['stock'] <= $item['threshold']) {
         $low_stock_count++;
     }
@@ -74,12 +42,12 @@ foreach ($_SESSION['inventory_db'] as $item) {
 
 $pending_orders_count = 0;
 $total_revenue = 0.0;
-foreach ($_SESSION['orders_db'] as $order) {
+foreach ($orders as $order) {
     if ($order['status'] === 'Pending') {
         $pending_orders_count++;
     }
     if ($order['status'] !== 'Cancelled') {
-        $total_revenue += $order['total'];
+        $total_revenue += (float)$order['total'];
     }
 }
 ?>

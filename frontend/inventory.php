@@ -9,91 +9,56 @@ if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-// Initialize session inventory if not set (Simulated local DB)
-if (!isset($_SESSION['inventory_db'])) {
-    $_SESSION['inventory_db'] = [
-        [
-            'id' => 1,
-            'title' => 'Introduction to Algorithms',
-            'isbn' => '978-0262033848',
-            'category' => 'Technology',
-            'stock' => 12,
-            'threshold' => 10
-        ],
-        [
-            'id' => 2,
-            'title' => 'Clean Code',
-            'isbn' => '978-0132350884',
-            'category' => 'Technology',
-            'stock' => 3,
-            'threshold' => 8
-        ],
-        [
-            'id' => 3,
-            'title' => 'Dune',
-            'isbn' => '978-0441172719',
-            'category' => 'Fiction',
-            'stock' => 25,
-            'threshold' => 5
-        ],
-        [
-            'id' => 4,
-            'title' => 'The Lean Startup',
-            'isbn' => '978-0307887894',
-            'category' => 'Business',
-            'stock' => 0,
-            'threshold' => 5
-        ],
-        [
-            'id' => 5,
-            'title' => 'A Brief History of Time',
-            'isbn' => '978-0553380163',
-            'category' => 'Science',
-            'stock' => 8,
-            'threshold' => 10
-        ],
-        [
-            'id' => 6,
-            'title' => 'Thinking, Fast and Slow',
-            'isbn' => '978-0374533557',
-            'category' => 'Science',
-            'stock' => 15,
-            'threshold' => 10
-        ]
-    ];
-}
-
 $alert_message = '';
 $alert_type = 'success';
 
-// Handle simulated stock level modification (restocking)
+// Handle stock level modification (restocking)
 if (isset($_GET['action']) && $_GET['action'] === 'restock') {
     $item_id = (int)($_GET['id'] ?? 0);
     $qty = (int)($_GET['qty'] ?? 10);
     
-    foreach ($_SESSION['inventory_db'] as &$item) {
-        if ($item['id'] === $item_id) {
-            $item['stock'] += $qty;
-            $alert_message = "Stock replenished! Added <strong>+{$qty}</strong> copies for <em>" . escape($item['title']) . "</em> (New Stock: {$item['stock']}).";
-            $alert_type = "success";
-            break;
-        }
+    // Call inventory-service to restock item
+    $old_get = $_GET;
+    $_GET = [
+        'action' => 'restock',
+        'id' => $item_id,
+        'qty' => $qty
+    ];
+    
+    ob_start();
+    require __DIR__ . '/../inventory-service/api/inventory.php';
+    $restock_res = json_decode(ob_get_clean(), true);
+    $_GET = $old_get; // restore GET
+    
+    if ($restock_res && ($restock_res['status'] ?? '') === 'success') {
+        $alert_message = "Stock replenished! Added <strong>+{$qty}</strong> copies for item ID #{$item_id}.";
+        $alert_type = "success";
+    } else {
+        $alert_message = $restock_res['message'] ?? "Failed to replenish stock.";
+        $alert_type = "danger";
     }
-    unset($item); // break pointer reference
 }
 
 // Read stock filters
 $filter_low_stock = isset($_GET['filter']) && $_GET['filter'] === 'low';
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 
-// Process in-memory filtering
+// Load inventory data from API
+$old_get = $_GET;
+$_GET = [];
+if ($filter_low_stock) {
+    $_GET['filter'] = 'low';
+}
+
+ob_start();
+require __DIR__ . '/../inventory-service/api/inventory.php';
+$inv_response = json_decode(ob_get_clean(), true);
+$inventory_data = $inv_response['data'] ?? [];
+$_GET = $old_get; // restore GET
+
+// Filter by search query if set
 $filtered_inventory = [];
-foreach ($_SESSION['inventory_db'] as $item) {
-    // Filter Low Stock (stock <= threshold)
-    if ($filter_low_stock && $item['stock'] > $item['threshold']) {
-        continue;
-    }
-    // Search Filter
+foreach ($inventory_data as $item) {
     if (!empty($search_query)) {
         $q = strtolower($search_query);
         if (strpos(strtolower($item['title']), $q) === false && strpos(strtolower($item['isbn']), $q) === false) {

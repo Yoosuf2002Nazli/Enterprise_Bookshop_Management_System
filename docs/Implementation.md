@@ -138,3 +138,51 @@ This ledger documents the implementation steps, routes, dependencies, and future
   - Warns administrators immediately of low-stock thresholds with blinking badge visual highlights and provides direct shortcuts to restock files.
 - **Future Backend Integration Points:**
   - The dashboard will query multiple microservice APIs concurrently or call a gateway aggregator retrieving synchronized metrics summaries.
+
+---
+
+## Phase 2: Database Integration
+
+### Overview
+Phase 2 replaces the in-memory session mocks with live MySQL databases per microservice module. Each service owns its respective schema database on the local MySQL server. Communication between frontend views and service API layers is wired using direct PHP `require` calls and output buffering (`ob_start()`).
+
+### Database Setup
+1. Ensure XAMPP Control Panel Apache and MySQL services are started.
+2. Initialize databases by running [init_databases.sql](file:///c:/Users/ASUS/workspace/Projects/Enterprise_Bookshop_Management_System/database/sql/init_databases.sql).
+3. Import the Phase 2 schema script [phase2_schema.sql](file:///c:/Users/ASUS/workspace/Projects/Enterprise_Bookshop_Management_System/database/sql/phase2_schema.sql) in PHPMyAdmin or CLI:
+   ```bash
+   mysql -u root -p < database/sql/phase2_schema.sql
+   ```
+
+### Service Layer Structure
+Each of the 5 services contains a standard structure:
+- `api/` — API route endpoints (e.g., `auth.php`, `books.php`, `inventory.php`, `orders.php`, `notify.php`).
+- `controllers/` — Request parameter validation, execution handling, and formatting structured responses via `jsonResponse()`.
+- `models/` — Data Access Object (DAO) classes executing PDO prepared SQL queries against the respective database schema.
+
+### Frontend Wiring Approach
+Each frontend page is configured at the very top block to run request-handling code. Standard GET/POST routing variables are populated programmatically, the service endpoint is required, and the JSON payload is read from the output buffer. 
+
+### Postman Test Reference Table
+The following endpoints can be tested independently using Postman or cURL:
+
+| Endpoint | Method | Params | Expected Response |
+| :--- | :--- | :--- | :--- |
+| `user-service/api/auth.php?action=register` | POST | `fullname`, `email`, `password`, `confirm_password`, `role` | `201 Created` with success message |
+| `user-service/api/auth.php?action=login` | POST | `email`, `password` | `200 OK` with session role and email |
+| `user-service/api/auth.php?action=logout` | GET/POST | None | `200 OK` with logout confirmation |
+| `catalog-service/api/books.php` | GET | `category` (optional), `search` (optional) | `200 OK` with matched book lists array |
+| `inventory-service/api/inventory.php` | GET | `filter=low` (optional) | `200 OK` with inventory stock status |
+| `inventory-service/api/inventory.php?action=restock` | GET | `id`, `qty` | `200 OK` with replenishment status |
+| `inventory-service/api/inventory.php?action=reduce` | POST | `isbn`, `qty` | `200 OK` with reduction status |
+| `order-service/api/orders.php` | GET | None | `200 OK` with list of order transactions |
+| `order-service/api/orders.php?action=create` | POST | `customer`, `email`, `book_id`, `book_title`, `qty`, `price` | `201 Created` with unique `order_ref` |
+| `order-service/api/orders.php?action=update_status` | GET | `id` (order_ref), `status`/`action` | `200 OK` with status update message |
+| `notification-service/api/notify.php` | GET | `limit` (optional) | `200 OK` with notification log logs list |
+| `notification-service/api/notify.php?action=log` | POST | `type`, `message`, `reference_id` (optional) | `201 Created` with log confirmation |
+
+### Known Limitations
+- **No Shopping Cart Table:** Orders are immediately placed per single book item.
+- **No Email Sending:** The Notification Service only records logging entries inside the `notification_db.notifications` table.
+- **Session-Based Auth:** Authentication uses standard PHP sessions only; JSON Web Tokens (JWT) are not implemented.
+- **Graceful Failure Handling:** Cross-database transactions are chained in code. If inventory stock subtraction fails after a new order is logged, the order status transitions to 'Cancelled' and a `400 Bad Request` is returned to the user.

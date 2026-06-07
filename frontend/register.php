@@ -6,31 +6,29 @@ include_once __DIR__ . '/components/config.php';
 $alert_message = '';
 $alert_type = '';
 
-// Handle simulated registration submission
+// Handle registration form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $fullname = $_POST['fullname'] ?? '';
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-    $confirm_password = $_POST['confirm_password'] ?? '';
-    $role = $_POST['role'] ?? 'customer';
-
-    if (empty($fullname) || empty($email) || empty($password) || empty($confirm_password)) {
-        $alert_message = "Please fill in all required fields.";
-        $alert_type = "danger";
-    } elseif ($password !== $confirm_password) {
-        $alert_message = "Passwords do not match. Please verify.";
-        $alert_type = "danger";
-    } else {
-        // Simple registration simulation success
-        $alert_message = "Registration successful! Redirecting you to login page...";
-        $alert_type = "success";
-
-        // Dynamic JavaScript redirect after 1.5s
+    // Set route action for user-service registration
+    $_GET['action'] = 'register';
+    
+    // Capture the JSON response from user-service
+    ob_start();
+    require __DIR__ . '/../user-service/api/auth.php';
+    $response = json_decode(ob_get_clean(), true);
+    
+    if ($response && ($response['status'] ?? '') === 'success') {
+        $alert_message = $response['message'] ?? 'Registration successful!';
+        $alert_type = 'success';
+        
+        // Redirect user to login portal on successful registration
         echo "<script>
             setTimeout(function() {
                 window.location.href = 'login.php';
             }, 1500);
         </script>";
+    } else {
+        $alert_message = $response['message'] ?? 'Registration failed.';
+        $alert_type = 'danger';
     }
 }
 ?>

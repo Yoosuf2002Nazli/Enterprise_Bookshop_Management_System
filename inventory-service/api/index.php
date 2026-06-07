@@ -1,7 +1,14 @@
 <?php
-header('Content-Type: application/json');
-echo json_encode([
+/**
+ * inventory-service/api/index.php
+ * Inventory Service entry point.
+ */
+require_once __DIR__ . '/../../shared/utils/response.php';
+
+jsonResponse([
     'service' => 'inventory-service',
     'status' => 'ok',
-    'message' => 'Starter endpoint is running.'
-]);
+    'endpoints' => [
+        'inventory.php'
+    ]
+], 200);
