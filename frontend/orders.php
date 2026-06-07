@@ -3,8 +3,18 @@
 $page_title = "Customer Orders - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
-// Access Guard: Ensure user is logged in as admin
-if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+// Access Guard: Ensure user is logged in as admin or staff, or email has 'admin'
+$is_admin = false;
+if (isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true) {
+    if (isset($_SESSION['user_role']) && ($_SESSION['user_role'] === 'admin' || $_SESSION['user_role'] === 'staff')) {
+        $is_admin = true;
+    }
+    if (isset($_SESSION['user_email']) && strpos($_SESSION['user_email'], 'admin') !== false) {
+        $is_admin = true;
+    }
+}
+
+if (!$is_admin) {
     header('Location: login.php');
     exit;
 }
@@ -87,6 +97,7 @@ if (isset($_GET['view_id'])) {
         }
     }
 }
+header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">

@@ -123,6 +123,7 @@ class AuthController {
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_role'] = $user['role'];
         $_SESSION['user_fullname'] = $user['fullname'];
+        $_SESSION['is_logged_in'] = true;
 
         // 5. Send successful response
         jsonResponse([

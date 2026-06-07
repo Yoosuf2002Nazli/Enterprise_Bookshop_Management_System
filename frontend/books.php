@@ -118,6 +118,7 @@ foreach ($books_data as $book) {
     $book['stock'] = $stock_map[$isbn] ?? 0;
     $filtered_books[] = $book;
 }
+header('Content-Type: text/html; charset=utf-8');
 ?>
 <!DOCTYPE html>
 <html lang="en">
