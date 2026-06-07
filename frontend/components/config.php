@@ -24,7 +24,7 @@ if ($frontend_pos !== false) {
     $base_url = substr($script_name, 0, $frontend_pos + 10);
 } else {
     // Fallback if hosted directly at the root of a domain
-    $base_url = '/';
+    $base_url = '/Enterprise_Bookshop_Management_System/frontend/';
 }
 
 // Helper utility to safely output strings to prevent XSS (Cross-Site Scripting)

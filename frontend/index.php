@@ -94,20 +94,7 @@ include_once __DIR__ . '/components/config.php';
       </div>
     </div>
 
-    <!-- Quick Team Sandbox Metas -->
-    <div class="p-4 bg-body-tertiary rounded-3 shadow-sm">
-      <div class="row align-items-center g-3 text-center text-md-start">
-        <div class="col-md-9">
-          <h4 class="h6 fw-bold text-uppercase text-secondary mb-1">Beginner Development Rules</h4>
-          <p class="mb-0 text-muted small">
-            To view or configure active backend modules, inspect directories like <code>/user-service/api/index.php</code> and <code>/catalog-service/api/index.php</code>. Always use the shared components for uniform layouts.
-          </p>
-        </div>
-        <div class="col-md-3 text-md-end">
-          <span class="badge bg-dark px-3 py-2 rounded-pill">Version 1.0.0</span>
-        </div>
-      </div>
-    </div>
+
   </main>
 
   <?php include __DIR__ . '/components/footer.php'; ?>

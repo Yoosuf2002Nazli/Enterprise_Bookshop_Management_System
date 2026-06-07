@@ -3,58 +3,49 @@
 $page_title = "Inventory Levels - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
-// Initialize session inventory if not set (Simulated local DB)
-if (!isset($_SESSION['inventory_db'])) {
-    $_SESSION['inventory_db'] = [
-        [
-            'id' => 1,
-            'title' => 'Introduction to Algorithms',
-            'isbn' => '978-0262033848',
-            'category' => 'Technology',
-            'stock' => 12,
-            'threshold' => 10
-        ],
-        [
-            'id' => 2,
-            'title' => 'Clean Code',
-            'isbn' => '978-0132350884',
-            'category' => 'Technology',
-            'stock' => 3,
-            'threshold' => 8
-        ],
-        [
-            'id' => 3,
-            'title' => 'Dune',
-            'isbn' => '978-0441172719',
-            'category' => 'Fiction',
-            'stock' => 25,
-            'threshold' => 5
-        ],
-        [
-            'id' => 4,
-            'title' => 'The Lean Startup',
-            'isbn' => '978-0307887894',
-            'category' => 'Business',
-            'stock' => 0,
-            'threshold' => 5
-        ],
-        [
-            'id' => 5,
-            'title' => 'A Brief History of Time',
-            'isbn' => '978-0553380163',
-            'category' => 'Science',
-            'stock' => 8,
-            'threshold' => 10
-        ],
-        [
-            'id' => 6,
-            'title' => 'Thinking, Fast and Slow',
-            'isbn' => '978-0374533557',
-            'category' => 'Science',
-            'stock' => 15,
-            'threshold' => 10
-        ]
-    ];
+// Fetch all books from catalog service
+$catalogServiceUrl = 'http://localhost/Enterprise_Bookshop_Management_System/catalog-service/api/books.php';
+$ch = curl_init($catalogServiceUrl);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+$catalogResponse = curl_exec($ch);
+curl_close($ch);
+
+$catalogResult = json_decode($catalogResponse, true);
+$allBooks = $catalogResult['data'] ?? [];
+
+// Create a lookup map of books by ID
+$bookMap = [];
+foreach ($allBooks as $book) {
+    $bookMap[$book['id']] = $book;
+}
+
+// Fetch stock data from inventory service
+$inventoryServiceUrl = 'http://localhost/Enterprise_Bookshop_Management_System/inventory-service/api/stock.php?warehouse_id=1';
+$ch = curl_init($inventoryServiceUrl);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+$response = curl_exec($ch);
+curl_close($ch);
+
+$result = json_decode($response, true);
+$stocks = $result['data'] ?? [];
+
+// Transform and merge stock data with book information
+$_SESSION['inventory_db'] = [];
+foreach ($stocks as $stock) {
+    $bookId = $stock['book_id'];
+    if (isset($bookMap[$bookId])) {
+        $book = $bookMap[$bookId];
+        $_SESSION['inventory_db'][] = [
+            'id' => $bookId,
+            'title' => $book['title'],
+            'isbn' => $book['isbn'],
+            'category' => $book['category_name'],
+            'stock' => $stock['quantity_on_hand'],
+            'threshold' => $stock['reorder_point']
+        ];
+    }
 }
 
 $alert_message = '';

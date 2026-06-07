@@ -3,75 +3,23 @@
 $page_title = "Explore Books - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
-// Interactive In-Memory Book Data Store
-$all_books = [
-    [
-        'id' => 1,
-        'title' => 'Introduction to Algorithms',
-        'author' => 'Thomas H. Cormen',
-        'price' => 89.99,
-        'category' => 'Technology',
-        'stock' => 12,
-        'isbn' => '978-0262033848',
-        'icon' => 'bi-code-square',
-        'icon_color' => 'text-primary'
-    ],
-    [
-        'id' => 2,
-        'title' => 'Clean Code',
-        'author' => 'Robert C. Martin',
-        'price' => 37.50,
-        'category' => 'Technology',
-        'stock' => 3,
-        'isbn' => '978-0132350884',
-        'icon' => 'bi-terminal-fill',
-        'icon_color' => 'text-dark'
-    ],
-    [
-        'id' => 3,
-        'title' => 'Dune',
-        'author' => 'Frank Herbert',
-        'price' => 14.99,
-        'category' => 'Fiction',
-        'stock' => 25,
-        'isbn' => '978-0441172719',
-        'icon' => 'bi-compass-fill',
-        'icon_color' => 'text-warning'
-    ],
-    [
-        'id' => 4,
-        'title' => 'The Lean Startup',
-        'author' => 'Eric Ries',
-        'price' => 24.95,
-        'category' => 'Business',
-        'stock' => 0,
-        'isbn' => '978-0307887894',
-        'icon' => 'bi-graph-up-arrow',
-        'icon_color' => 'text-success'
-    ],
-    [
-        'id' => 5,
-        'title' => 'A Brief History of Time',
-        'author' => 'Stephen Hawking',
-        'price' => 18.99,
-        'category' => 'Science',
-        'stock' => 8,
-        'isbn' => '978-0553380163',
-        'icon' => 'bi-stars',
-        'icon_color' => 'text-info'
-    ],
-    [
-        'id' => 6,
-        'title' => 'Thinking, Fast and Slow',
-        'author' => 'Daniel Kahneman',
-        'price' => 21.00,
-        'category' => 'Science',
-        'stock' => 15,
-        'isbn' => '978-0374533557',
-        'icon' => 'bi-brain',
-        'icon_color' => 'text-danger'
-    ]
-];
+
+
+$catalogServiceUrl = 'http://localhost/Enterprise_Bookshop_Management_System/catalog-service/api/books.php';
+
+$ch = curl_init($catalogServiceUrl);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_TIMEOUT, 5);
+$response = curl_exec($ch);
+$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+curl_close($ch);
+
+if ($httpCode === 200) {
+    $result = json_decode($response, true);
+    $all_books = $result['data'] ?? [];
+} else {
+    $all_books = [];
+}
 
 // Read request filters
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
@@ -80,8 +28,8 @@ $selected_category = isset($_GET['category']) ? trim($_GET['category']) : 'all';
 // Process filtering
 $filtered_books = [];
 foreach ($all_books as $book) {
-    // Match Category
-    if ($selected_category !== 'all' && strtolower($book['category']) !== strtolower($selected_category)) {
+    // Match Category (use category_name from database)
+    if ($selected_category !== 'all' && strtolower($book['category_name']) !== strtolower($selected_category)) {
         continue;
     }
     // Match Search Query
@@ -103,11 +51,8 @@ if (isset($_GET['add_cart_id'])) {
     $added_id = (int)$_GET['add_cart_id'];
     foreach ($all_books as $book) {
         if ($book['id'] === $added_id) {
-            if ($book['stock'] > 0) {
-                $cart_alert = "Success: <strong>" . escape($book['title']) . "</strong> has been added to your simulated cart!";
-            } else {
-                $cart_alert = "Error: Out of stock!";
-            }
+            // For now, assume all books are in stock (stock data comes from inventory service)
+            $cart_alert = "Success: <strong>" . escape($book['title']) . "</strong> has been added to your simulated cart!";
             break;
         }
     }
@@ -212,7 +157,7 @@ if (isset($_GET['add_cart_id'])) {
               <!-- Card details -->
               <div class="card-body d-flex flex-column p-4">
                 <div class="mb-2">
-                  <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-2 py-1 small"><?php echo escape($book['category']); ?></span>
+                  <span class="badge bg-secondary-subtle text-secondary-emphasis rounded-pill px-2 py-1 small"><?php echo escape($book['category_name']); ?></span>
                 </div>
                 <h3 class="card-title h5 fw-bold text-dark mb-1 lh-sm"><?php echo escape($book['title']); ?></h3>
                 <p class="text-muted small mb-3">By <?php echo escape($book['author']); ?></p>
@@ -224,15 +169,10 @@ if (isset($_GET['add_cart_id'])) {
                   </div>
                   
                   <div class="text-end">
-                    <?php if ($book['stock'] > 0): ?>
-                      <span class="badge bg-success-subtle text-success border-success-subtle badge-pill-status mb-2">
-                        <i class="bi bi-check-circle me-1"></i>In Stock (<?php echo $book['stock']; ?>)
-                      </span>
-                    <?php else: ?>
-                      <span class="badge bg-danger-subtle text-danger border-danger-subtle badge-pill-status mb-2">
-                        <i class="bi bi-x-circle me-1"></i>Out of Stock
-                      </span>
-                    <?php endif; ?>
+                    <!-- Stock status from inventory service (TODO: integrate inventory-service) -->
+                    <span class="badge bg-success-subtle text-success border-success-subtle badge-pill-status mb-2">
+                      <i class="bi bi-check-circle me-1"></i>In Stock
+                    </span>
                   </div>
                 </div>
               </div>
@@ -240,15 +180,9 @@ if (isset($_GET['add_cart_id'])) {
               <!-- Card actions -->
               <div class="card-footer bg-white border-0 p-4 pt-0">
                 <div class="d-grid">
-                  <?php if ($book['stock'] > 0): ?>
-                    <a href="books.php?category=<?php echo urlencode($selected_category); ?>&search=<?php echo urlencode($search_query); ?>&add_cart_id=<?php echo $book['id']; ?>" class="btn btn-primary rounded-pill fw-semibold shadow-sm">
-                      <i class="bi bi-cart-plus me-1"></i>Add to Cart
-                    </a>
-                  <?php else: ?>
-                    <button class="btn btn-secondary rounded-pill fw-semibold" disabled>
-                      <i class="bi bi-envelope me-1"></i>Notify Restock
-                    </button>
-                  <?php endif; ?>
+                  <a href="books.php?category=<?php echo urlencode($selected_category); ?>&search=<?php echo urlencode($search_query); ?>&add_cart_id=<?php echo $book['id']; ?>" class="btn btn-primary rounded-pill fw-semibold shadow-sm">
+                    <i class="bi bi-cart-plus me-1"></i>Add to Cart
+                  </a>
                 </div>
               </div>
             </div>
