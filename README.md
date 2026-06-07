@@ -75,10 +75,10 @@ Detailed guide: `docs/setup-guide.md`
    ```bash
    git clone https://github.com/Yoosuf2002Nazli/Enterprise_Bookshop_Management_System.git
    ```
-4. Move project into `C:\xampp\htdocs\bookshop-management-system`.
+4. Move project into `C:\xampp\htdocs\bookshop-management-system`or `C:\xampp\htdocs\Enterprise_Bookshop_Management_System `
 5. Open `http://localhost/phpmyadmin`.
 6. Create/import databases using `database/sql/init_databases.sql, database/sql/catalog_service_schema.sql, database/sql/inventory_service_schema.sql`.
-7. Open `http://localhost/bookshop-management-system/`.
+7. Open `http://localhost/bookshop-management-system/`or `http://localhost/Enterprise_Bookshop_Management_System/`
 
 ## 7. Database Setup Instructions
 This project uses one MySQL server (XAMPP) with separate databases per service:
@@ -93,8 +93,8 @@ Each service owns its own database schema and data. This keeps modules independe
 ## 8. Running the Project Locally
 - Ensure Apache + MySQL are running in XAMPP.
 - Open browser:
-  - Home: `http://localhost/bookshop-management-system/`
-  - Frontend entry: `http://localhost/bookshop-management-system/frontend/`
+  - Home: `http://localhost/bookshop-management-system/` or `http://localhost/Enterprise_Bookshop_Management_System/`
+  - Frontend entry: `http://localhost/bookshop-management-system/frontend/` or  `http://localhost/Enterprise_Bookshop_Management_System/frontend/`
 - Test starter API endpoints:
   - `/user-service/api/index.php`
   - `/catalog-service/api/index.php`
