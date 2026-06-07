@@ -3,6 +3,10 @@
 $page_title = "Explore Books - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
+function getBookCoverClass(string $category): string {
+  return 'cover-' . strtolower($category);
+}
+
 // 1. Read request filters
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 $selected_category = isset($_GET['category']) ? trim($_GET['category']) : 'all';
@@ -202,12 +206,12 @@ foreach ($books_data as $book) {
         <?php foreach ($filtered_books as $book): ?>
           <div class="col">
             <div class="card h-100 premium-card">
-              <!-- Book Cover Placeholder Representation -->
-              <div class="card-header bg-light border-0 py-4 d-flex justify-content-center align-items-center" style="height: 180px;">
-                <div class="text-center">
-                  <i class="bi <?php echo $book['icon']; ?> <?php echo $book['icon_color']; ?> display-4 mb-2"></i>
-                  <div class="text-muted small fs-6">ISBN: <?php echo escape($book['isbn']); ?></div>
-                </div>
+              <div class="book-card-cover
+                <?php echo getBookCoverClass($book['category']); ?>">
+                <i class="bi <?php echo $book['icon']; ?> book-icon"></i>
+                <span class="book-isbn">
+                  <?php echo escape($book['isbn']); ?>
+                </span>
               </div>
               
               <!-- Card details -->
@@ -266,5 +270,7 @@ foreach ($books_data as $book) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Shared JS logic -->
   <script src="<?php echo $base_url; ?>assets/js/shared.js"></script>
+  <!-- UI Enhancement logic -->
+  <script src="<?php echo $base_url; ?>assets/js/ui.js"></script>
 </body>
 </html>

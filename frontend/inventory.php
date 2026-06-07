@@ -136,7 +136,7 @@ foreach ($inventory_data as $item) {
     <!-- Inventory Data Table -->
     <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
       <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
+        <table class="data-table">
           <thead class="table-light">
             <tr>
               <th scope="col" class="ps-4">Book Title</th>
@@ -173,8 +173,24 @@ foreach ($inventory_data as $item) {
                 </td>
                 <td class="text-center font-monospace text-secondary fw-semibold"><?php echo $item['threshold']; ?></td>
                 <td class="text-center">
-                  <div class="d-inline-block px-3 py-1 font-monospace fw-bold rounded-2 <?php echo $is_low ? 'bg-danger text-white ' . $pulse_class : 'bg-light text-dark'; ?>">
-                    <?php echo $item['stock']; ?>
+                  <div class="d-flex align-items-center justify-content-center gap-2">
+                    <?php
+                      $max_display = $item['threshold'] * 2;
+                      $fill_pct = $max_display > 0
+                        ? min(100, round(($item['stock'] / $max_display) * 100))
+                        : 100;
+                      $bar_class = $is_out ? 'empty' : ($is_low ? 'low' : '');
+                    ?>
+                    <div class="stock-bar-wrap">
+                      <div class="stock-bar-fill <?php echo $bar_class; ?>"
+                           style="width:<?php echo $fill_pct; ?>%"></div>
+                    </div>
+                    <span class="font-monospace fw-bold
+                      <?php echo $is_out
+                        ? 'text-danger'
+                        : ($is_low ? 'text-warning' : 'text-dark'); ?>">
+                      <?php echo $item['stock']; ?>
+                    </span>
                   </div>
                 </td>
                 <td class="text-center">
@@ -221,5 +237,7 @@ foreach ($inventory_data as $item) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Shared JS logic -->
   <script src="<?php echo $base_url; ?>assets/js/shared.js"></script>
+  <!-- UI Enhancement logic -->
+  <script src="<?php echo $base_url; ?>assets/js/ui.js"></script>
 </body>
 </html>

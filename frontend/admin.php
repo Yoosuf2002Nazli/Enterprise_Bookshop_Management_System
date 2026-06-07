@@ -50,6 +50,16 @@ foreach ($orders as $order) {
         $total_revenue += (float)$order['total'];
     }
 }
+
+$shipped_count = 0;
+$delivered_count = 0;
+$cancelled_count = 0;
+foreach ($orders as $order) {
+    if ($order['status'] === 'Shipped')   $shipped_count++;
+    if ($order['status'] === 'Delivered') $delivered_count++;
+    if ($order['status'] === 'Cancelled') $cancelled_count++;
+}
+$normal_stock_count = $catalog_size - $low_stock_count;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -81,60 +91,70 @@ foreach ($orders as $order) {
     </div>
 
     <!-- Quick Metrics Cards -->
-    <div class="row g-3 mb-5">
-      <!-- Metric 1: Total Revenue -->
+    <div class="row g-3 mb-4">
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3">
-          <div class="card-body">
-            <div class="p-2 bg-success bg-opacity-10 text-success rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-cash-stack fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Total Sales Revenue</span>
-            <strong class="h3 fw-bold text-dark font-monospace d-block mt-1">$<?php echo number_format($total_revenue, 2); ?></strong>
-            <small class="text-success small fw-semibold"><i class="bi bi-graph-up me-1"></i>Active Orders</small>
+        <div class="stat-card accent-green">
+          <p class="stat-label">Total Sales Revenue</p>
+          <div class="stat-value">
+            $<?php echo number_format($total_revenue, 2); ?>
+          </div>
+          <div class="stat-trend text-success">
+            <i class="bi bi-graph-up me-1"></i>Active Orders
           </div>
         </div>
       </div>
-
-      <!-- Metric 2: Catalog Size -->
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3">
-          <div class="card-body">
-            <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-journals fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Catalog Listings</span>
-            <strong class="h3 fw-bold text-dark font-monospace d-block mt-1"><?php echo $catalog_size; ?></strong>
-            <small class="text-primary small fw-semibold"><i class="bi bi-tags me-1"></i>Published entries</small>
+        <div class="stat-card accent-blue">
+          <p class="stat-label">Catalog Listings</p>
+          <div class="stat-value"><?php echo $catalog_size; ?></div>
+          <div class="stat-trend text-primary">
+            <i class="bi bi-tags me-1"></i>Published entries
           </div>
         </div>
       </div>
-
-      <!-- Metric 3: Pending Checkouts -->
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3">
-          <div class="card-body">
-            <div class="p-2 bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-hourglass-split fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Pending Checkouts</span>
-            <strong class="h3 fw-bold text-dark font-monospace d-block mt-1"><?php echo $pending_orders_count; ?></strong>
-            <small class="text-warning small fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>Requires actions</small>
+        <div class="stat-card accent-yellow">
+          <p class="stat-label">Pending Checkouts</p>
+          <div class="stat-value">
+            <?php echo $pending_orders_count; ?>
+          </div>
+          <div class="stat-trend text-warning">
+            <i class="bi bi-exclamation-circle me-1"></i>Requires action
           </div>
         </div>
       </div>
-
-      <!-- Metric 4: Low Stock Alerts -->
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3 <?php echo ($low_stock_count > 0) ? 'border-warning-glow low-stock-pulse' : ''; ?>">
-          <div class="card-body">
-            <div class="p-2 bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-exclamation-triangle fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Low Stock Alerts</span>
-            <strong class="h3 fw-bold text-danger font-monospace d-block mt-1"><?php echo $low_stock_count; ?></strong>
-            <small class="text-danger small fw-semibold"><i class="bi bi-arrow-down-circle me-1"></i>Needs restock</small>
+        <div class="stat-card accent-red
+          <?php echo ($low_stock_count > 0) ? 'low-stock-pulse' : ''; ?>">
+          <p class="stat-label">Low Stock Alerts</p>
+          <div class="stat-value text-danger">
+            <?php echo $low_stock_count; ?>
           </div>
+          <div class="stat-trend text-danger">
+            <i class="bi bi-arrow-down-circle me-1"></i>Needs restock
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-3 p-4">
+          <h3 class="h6 fw-bold text-uppercase text-muted mb-3">
+            Order Status Distribution
+          </h3>
+          <div style="position:relative; height:220px;">
+            <canvas id="ordersBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 p-4">
+          <h3 class="h6 fw-bold text-uppercase text-muted mb-3">
+            Stock Health
+          </h3>
+          <canvas id="stockDoughnutChart"></canvas>
         </div>
       </div>
     </div>
@@ -183,7 +203,7 @@ foreach ($orders as $order) {
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
+              <table class="data-table">
                 <thead class="table-light">
                   <tr class="small text-muted">
                     <th scope="col" class="ps-4">Book Title</th>
@@ -241,7 +261,70 @@ foreach ($orders as $order) {
 
   <!-- Bootstrap Bundle with Popper CDN -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Charts Initialization -->
+  <script>
+  // Order Status Bar Chart
+  new Chart(document.getElementById('ordersBarChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Pending','Shipped','Delivered','Cancelled'],
+      datasets: [{
+        data: [
+          <?php echo $pending_orders_count; ?>,
+          <?php echo $shipped_count; ?>,
+          <?php echo $delivered_count; ?>,
+          <?php echo $cancelled_count; ?>
+        ],
+        backgroundColor: ['#f59e0b','#3b82f6','#10b981','#ef4444'],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1 },
+          grid: { color: '#f1f5f9' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Stock Health Doughnut Chart
+  new Chart(document.getElementById('stockDoughnutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Normal Stock','Low Stock'],
+      datasets: [{
+        data: [
+          <?php echo $normal_stock_count; ?>,
+          <?php echo $low_stock_count; ?>
+        ],
+        backgroundColor: ['#10b981','#ef4444'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '70%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 11 }, padding: 16 }
+        }
+      }
+    }
+  });
+  </script>
   <!-- Shared JS logic -->
   <script src="<?php echo $base_url; ?>assets/js/shared.js"></script>
+  <!-- UI Enhancement logic -->
+  <script src="<?php echo $base_url; ?>assets/js/ui.js"></script>
 </body>
 </html>

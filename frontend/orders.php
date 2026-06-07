@@ -133,7 +133,7 @@ if (isset($_GET['view_id'])) {
       <div class="<?php echo ($selected_order) ? 'col-lg-7' : 'col-12'; ?> transition-all">
         <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="data-table">
               <thead class="table-light">
                 <tr>
                   <th scope="col" class="ps-4">Order ID</th>
@@ -167,7 +167,22 @@ if (isset($_GET['view_id'])) {
                     <td class="text-secondary small"><?php echo $order['date']; ?></td>
                     <td class="text-center font-monospace text-dark fw-semibold">$<?php echo number_format($order['total'], 2); ?></td>
                     <td class="text-center">
-                      <span class="badge <?php echo $badge_color; ?> badge-pill-status"><?php echo $status; ?></span>
+                      <?php
+                        $dot_color = match($status) {
+                          'Pending'   => '#f59e0b',
+                          'Shipped'   => '#3b82f6',
+                          'Delivered' => '#10b981',
+                          'Cancelled' => '#ef4444',
+                          default     => '#94a3b8'
+                        };
+                      ?>
+                      <div class="d-flex align-items-center justify-content-center gap-2">
+                        <span class="status-dot"
+                          style="background-color:<?php echo $dot_color; ?>"></span>
+                        <span class="badge <?php echo $badge_color; ?> badge-pill-status">
+                          <?php echo $status; ?>
+                        </span>
+                      </div>
                     </td>
                     <td class="text-end pe-4">
                       <!-- Dropdown Action list -->
@@ -286,5 +301,7 @@ if (isset($_GET['view_id'])) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Shared JS logic -->
   <script src="<?php echo $base_url; ?>assets/js/shared.js"></script>
+  <!-- UI Enhancement logic -->
+  <script src="<?php echo $base_url; ?>assets/js/ui.js"></script>
 </body>
 </html>
