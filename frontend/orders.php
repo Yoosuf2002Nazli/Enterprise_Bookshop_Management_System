@@ -3,74 +3,84 @@
 $page_title = "Customer Orders - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
-// Initialize session orders if not set (Simulated local order DB)
-if (!isset($_SESSION['orders_db'])) {
-    $_SESSION['orders_db'] = [
-        [
-            'id' => 'ORD-2026-98101',
-            'customer' => 'Alice Vance',
-            'email' => 'alice@university.edu',
-            'date' => '2026-05-25 10:42 AM',
-            'total' => 127.49,
-            'status' => 'Pending',
-            'items' => [
-                ['title' => 'Introduction to Algorithms', 'qty' => 1, 'price' => 89.99],
-                ['title' => 'Clean Code', 'qty' => 1, 'price' => 37.50]
-            ]
-        ],
-        [
-            'id' => 'ORD-2026-98102',
-            'customer' => 'Bob Miller',
-            'email' => 'bob.m@university.edu',
-            'date' => '2026-05-24 03:15 PM',
-            'total' => 29.98,
-            'status' => 'Shipped',
-            'items' => [
-                ['title' => 'Dune', 'qty' => 2, 'price' => 14.99]
-            ]
-        ],
-        [
-            'id' => 'ORD-2026-98103',
-            'customer' => 'Charlie Stone',
-            'email' => 'cstone@university.edu',
-            'date' => '2026-05-22 06:12 PM',
-            'total' => 39.99,
-            'status' => 'Delivered',
-            'items' => [
-                ['title' => 'A Brief History of Time', 'qty' => 1, 'price' => 18.99],
-                ['title' => 'Thinking, Fast and Slow', 'qty' => 1, 'price' => 21.00]
-            ]
-        ]
-    ];
+// Access Guard: Ensure user is logged in as admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: login.php');
+    exit;
 }
 
 $alert_message = '';
 $alert_type = 'success';
 
-// Handle simulated order status update
+// Handle order status update
 if (isset($_GET['action']) && isset($_GET['id'])) {
     $order_id = $_GET['id'];
     $new_status = $_GET['action'];
     
     $valid_statuses = ['Pending', 'Shipped', 'Delivered', 'Cancelled'];
     if (in_array($new_status, $valid_statuses)) {
-        foreach ($_SESSION['orders_db'] as &$order) {
-            if ($order['id'] === $order_id) {
-                $order['status'] = $new_status;
-                $alert_message = "Order <strong>{$order_id}</strong> has been successfully marked as <strong>{$new_status}</strong>.";
-                $alert_type = ($new_status === 'Cancelled') ? 'danger' : 'success';
-                break;
-            }
+        // Call order-service to update status
+        $old_get = $_GET;
+        $_GET = [
+            'action' => 'update_status',
+            'id' => $order_id,
+            'status' => $new_status
+        ];
+        
+        ob_start();
+        require __DIR__ . '/../order-service/api/orders.php';
+        $update_res = json_decode(ob_get_clean(), true);
+        $_GET = $old_get; // restore GET
+        
+        if ($update_res && ($update_res['status'] ?? '') === 'success') {
+            $alert_message = "Order <strong>{$order_id}</strong> has been successfully marked as <strong>{$new_status}</strong>.";
+            $alert_type = ($new_status === 'Cancelled') ? 'danger' : 'success';
+            
+            // Call notification-service to log the status change
+            $old_post_notif = $_POST;
+            $old_get_notif = $_GET;
+            $_POST = [
+                'type' => 'status_update',
+                'message' => "Order {$order_id} updated to {$new_status}",
+                'reference_id' => $order_id
+            ];
+            $_GET = ['action' => 'log'];
+            
+            ob_start();
+            require __DIR__ . '/../notification-service/api/notify.php';
+            ob_get_clean(); // discard response
+            
+            $_POST = $old_post_notif;
+            $_GET = $old_get_notif;
+        } else {
+            $alert_message = $update_res['message'] ?? "Failed to update order status.";
+            $alert_type = "danger";
         }
-        unset($order);
     }
+}
+
+// Load orders from API
+$old_get = $_GET;
+$_GET = [];
+ob_start();
+require __DIR__ . '/../order-service/api/orders.php';
+$orders_response = json_decode(ob_get_clean(), true);
+$orders_data = $orders_response['data'] ?? [];
+$_GET = $old_get; // restore GET
+
+// Map order data structure to match frontend expectations (id = order_ref, date = created_at formatted)
+$orders = [];
+foreach ($orders_data as $order) {
+    $order['id'] = $order['order_ref'];
+    $order['date'] = date('Y-m-d h:i A', strtotime($order['created_at']));
+    $orders[] = $order;
 }
 
 // Find selected order details if requested
 $selected_order = null;
 if (isset($_GET['view_id'])) {
     $view_id = $_GET['view_id'];
-    foreach ($_SESSION['orders_db'] as $order) {
+    foreach ($orders as $order) {
         if ($order['id'] === $view_id) {
             $selected_order = $order;
             break;
@@ -123,7 +133,7 @@ if (isset($_GET['view_id'])) {
       <div class="<?php echo ($selected_order) ? 'col-lg-7' : 'col-12'; ?> transition-all">
         <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
           <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
+            <table class="data-table">
               <thead class="table-light">
                 <tr>
                   <th scope="col" class="ps-4">Order ID</th>
@@ -157,7 +167,22 @@ if (isset($_GET['view_id'])) {
                     <td class="text-secondary small"><?php echo $order['date']; ?></td>
                     <td class="text-center font-monospace text-dark fw-semibold">$<?php echo number_format($order['total'], 2); ?></td>
                     <td class="text-center">
-                      <span class="badge <?php echo $badge_color; ?> badge-pill-status"><?php echo $status; ?></span>
+                      <?php
+                        $dot_color = match($status) {
+                          'Pending'   => '#f59e0b',
+                          'Shipped'   => '#3b82f6',
+                          'Delivered' => '#10b981',
+                          'Cancelled' => '#ef4444',
+                          default     => '#94a3b8'
+                        };
+                      ?>
+                      <div class="d-flex align-items-center justify-content-center gap-2">
+                        <span class="status-dot"
+                          style="background-color:<?php echo $dot_color; ?>"></span>
+                        <span class="badge <?php echo $badge_color; ?> badge-pill-status">
+                          <?php echo $status; ?>
+                        </span>
+                      </div>
                     </td>
                     <td class="text-end pe-4">
                       <!-- Dropdown Action list -->
@@ -170,11 +195,11 @@ if (isset($_GET['view_id'])) {
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end shadow">
                           <li><h6 class="dropdown-header">Modify Status Pipeline</h6></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?id=<?php echo $order['id']; ?>&action=Pending"><i class="bi bi-hourglass text-warning"></i> Pending</a></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?id=<?php echo $order['id']; ?>&action=Shipped"><i class="bi bi-truck text-primary"></i> Shipped</a></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?id=<?php echo $order['id']; ?>&action=Delivered"><i class="bi bi-check-circle text-success"></i> Delivered</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Pending"><i class="bi bi-hourglass text-warning"></i> Pending</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Shipped"><i class="bi bi-truck text-primary"></i> Shipped</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Delivered"><i class="bi bi-check-circle text-success"></i> Delivered</a></li>
                           <li><hr class="dropdown-divider"></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="orders.php?id=<?php echo $order['id']; ?>&action=Cancelled"><i class="bi bi-x-circle text-danger"></i> Cancel Order</a></li>
+                          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Cancelled"><i class="bi bi-x-circle text-danger"></i> Cancel Order</a></li>
                         </ul>
                       </div>
                     </td>
@@ -276,5 +301,7 @@ if (isset($_GET['view_id'])) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Shared JS logic -->
   <script src="<?php echo $base_url; ?>assets/js/shared.js"></script>
+  <!-- UI Enhancement logic -->
+  <script src="<?php echo $base_url; ?>assets/js/ui.js"></script>
 </body>
 </html>

@@ -32,12 +32,26 @@ if (!isset($base_url)) {
         <li class="nav-item">
           <a class="nav-link px-3 py-2 rounded-pill" href="<?php echo $base_url; ?>admin.php">Admin Dashboard</a>
         </li>
-        <li class="nav-item ms-lg-2">
-          <a class="btn btn-outline-light btn-sm px-3 rounded-pill" href="<?php echo $base_url; ?>login.php">Login</a>
-        </li>
-        <li class="nav-item">
-          <a class="btn btn-warning-glow btn-sm px-3 rounded-pill text-dark fw-bold" href="<?php echo $base_url; ?>register.php">Register</a>
-        </li>
+        <?php if (isset($_SESSION['user_email'])): ?>
+          <li class="nav-item ms-lg-2">
+            <span class="nav-link text-warning-glow small">
+              <?php echo escape($_SESSION['user_email']); ?>
+            </span>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-outline-light btn-sm px-3 rounded-pill" 
+               href="<?php echo $base_url; ?>login.php?action=logout">Logout</a>
+          </li>
+        <?php else: ?>
+          <li class="nav-item ms-lg-2">
+            <a class="btn btn-outline-light btn-sm px-3 rounded-pill" 
+               href="<?php echo $base_url; ?>login.php">Login</a>
+          </li>
+          <li class="nav-item">
+            <a class="btn btn-warning-glow btn-sm px-3 rounded-pill text-dark fw-bold" 
+               href="<?php echo $base_url; ?>register.php">Register</a>
+          </li>
+        <?php endif; ?>
       </ul>
     </div>
   </div>

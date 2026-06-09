@@ -1,7 +1,14 @@
 <?php
-header('Content-Type: application/json');
-echo json_encode([
+/**
+ * catalog-service/api/index.php
+ * Catalog Service entry point.
+ */
+require_once __DIR__ . '/../../shared/utils/response.php';
+
+jsonResponse([
     'service' => 'catalog-service',
     'status' => 'ok',
-    'message' => 'Starter endpoint is running.'
-]);
+    'endpoints' => [
+        'books.php'
+    ]
+], 200);

@@ -3,114 +3,120 @@
 $page_title = "Explore Books - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
-// Interactive In-Memory Book Data Store
-$all_books = [
-    [
-        'id' => 1,
-        'title' => 'Introduction to Algorithms',
-        'author' => 'Thomas H. Cormen',
-        'price' => 89.99,
-        'category' => 'Technology',
-        'stock' => 12,
-        'isbn' => '978-0262033848',
-        'icon' => 'bi-code-square',
-        'icon_color' => 'text-primary'
-    ],
-    [
-        'id' => 2,
-        'title' => 'Clean Code',
-        'author' => 'Robert C. Martin',
-        'price' => 37.50,
-        'category' => 'Technology',
-        'stock' => 3,
-        'isbn' => '978-0132350884',
-        'icon' => 'bi-terminal-fill',
-        'icon_color' => 'text-dark'
-    ],
-    [
-        'id' => 3,
-        'title' => 'Dune',
-        'author' => 'Frank Herbert',
-        'price' => 14.99,
-        'category' => 'Fiction',
-        'stock' => 25,
-        'isbn' => '978-0441172719',
-        'icon' => 'bi-compass-fill',
-        'icon_color' => 'text-warning'
-    ],
-    [
-        'id' => 4,
-        'title' => 'The Lean Startup',
-        'author' => 'Eric Ries',
-        'price' => 24.95,
-        'category' => 'Business',
-        'stock' => 0,
-        'isbn' => '978-0307887894',
-        'icon' => 'bi-graph-up-arrow',
-        'icon_color' => 'text-success'
-    ],
-    [
-        'id' => 5,
-        'title' => 'A Brief History of Time',
-        'author' => 'Stephen Hawking',
-        'price' => 18.99,
-        'category' => 'Science',
-        'stock' => 8,
-        'isbn' => '978-0553380163',
-        'icon' => 'bi-stars',
-        'icon_color' => 'text-info'
-    ],
-    [
-        'id' => 6,
-        'title' => 'Thinking, Fast and Slow',
-        'author' => 'Daniel Kahneman',
-        'price' => 21.00,
-        'category' => 'Science',
-        'stock' => 15,
-        'isbn' => '978-0374533557',
-        'icon' => 'bi-brain',
-        'icon_color' => 'text-danger'
-    ]
-];
+function getBookCoverClass(string $category): string {
+  return 'cover-' . strtolower($category);
+}
 
-// Read request filters
+// 1. Read request filters
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 $selected_category = isset($_GET['category']) ? trim($_GET['category']) : 'all';
 
-// Process filtering
-$filtered_books = [];
-foreach ($all_books as $book) {
-    // Match Category
-    if ($selected_category !== 'all' && strtolower($book['category']) !== strtolower($selected_category)) {
-        continue;
-    }
-    // Match Search Query
-    if (!empty($search_query)) {
-        $query = strtolower($search_query);
-        $title_match = strpos(strtolower($book['title']), $query) !== false;
-        $author_match = strpos(strtolower($book['author']), $query) !== false;
-        $isbn_match = strpos(strtolower($book['isbn']), $query) !== false;
-        if (!$title_match && !$author_match && !$isbn_match) {
-            continue;
-        }
-    }
-    $filtered_books[] = $book;
-}
-
-// Simulated action state (Add to Cart)
 $cart_alert = '';
+
+// 2. Handle Add to Cart action (Order Placement)
 if (isset($_GET['add_cart_id'])) {
     $added_id = (int)$_GET['add_cart_id'];
-    foreach ($all_books as $book) {
-        if ($book['id'] === $added_id) {
-            if ($book['stock'] > 0) {
-                $cart_alert = "Success: <strong>" . escape($book['title']) . "</strong> has been added to your simulated cart!";
-            } else {
-                $cart_alert = "Error: Out of stock!";
+    
+    // Check if the user is logged in
+    if (!isset($_SESSION['user_email'])) {
+        $cart_alert = "Error: <strong>Please log in</strong> to purchase books.";
+    } else {
+        // We need the book details (title, price) to place the order
+        // First retrieve all books from catalog to find the book info
+        ob_start();
+        $old_get = $_GET;
+        $_GET = []; // clear to get all books
+        require __DIR__ . '/../catalog-service/api/books.php';
+        $cat_response = json_decode(ob_get_clean(), true);
+        $books_data = $cat_response['data'] ?? [];
+        $_GET = $old_get; // restore
+
+        $target_book = null;
+        foreach ($books_data as $b) {
+            if ((int)$b['id'] === $added_id) {
+                $target_book = $b;
+                break;
             }
-            break;
+        }
+
+        if ($target_book === null) {
+            $cart_alert = "Error: Book not found in the catalog.";
+        } else {
+            // Place the order via order-service POST action=create
+            $old_post = $_POST;
+            $old_get = $_GET;
+            
+            $_POST = [
+                'customer' => $_SESSION['user_fullname'] ?? $_SESSION['user_email'],
+                'email' => $_SESSION['user_email'],
+                'book_id' => $target_book['id'],
+                'book_title' => $target_book['title'],
+                'qty' => 1,
+                'price' => $target_book['price']
+            ];
+            $_GET = ['action' => 'create'];
+            
+            ob_start();
+            require __DIR__ . '/../order-service/api/orders.php';
+            $order_res = json_decode(ob_get_clean(), true);
+            
+            $_POST = $old_post; // restore $_POST
+            $_GET = $old_get;   // restore $_GET
+            
+            if ($order_res && ($order_res['status'] ?? '') === 'success') {
+                $order_ref = $order_res['order_ref'] ?? '';
+                $cart_alert = "Success: Order <strong>" . escape($order_ref) . "</strong> has been created! <strong>" . escape($target_book['title']) . "</strong> has been purchased.";
+                
+                // Call notification-service POST action=log to log order placement
+                $old_post_notif = $_POST;
+                $old_get_notif = $_GET;
+                $_POST = [
+                    'type' => 'order_placed',
+                    'message' => 'Order placed by ' . $_SESSION['user_email'],
+                    'reference_id' => $order_ref
+                ];
+                $_GET = ['action' => 'log'];
+                
+                ob_start();
+                require __DIR__ . '/../notification-service/api/notify.php';
+                ob_get_clean(); // discard notification response
+                
+                $_POST = $old_post_notif;
+                $_GET = $old_get_notif;
+            } else {
+                $cart_alert = "Error: " . ($order_res['message'] ?? 'Failed to place order.');
+            }
         }
     }
+}
+
+// 3. Load active stock levels from inventory-service
+ob_start();
+$old_get = $_GET;
+$_GET = []; // clear to load all inventory levels
+require __DIR__ . '/../inventory-service/api/inventory.php';
+$inv_response = json_decode(ob_get_clean(), true);
+$inventory_data = $inv_response['data'] ?? [];
+$_GET = $old_get; // restore
+
+$stock_map = [];
+foreach ($inventory_data as $inv) {
+    $stock_map[$inv['isbn']] = (int)$inv['stock'];
+}
+
+// 4. Retrieve filtered/searched books from catalog-service
+ob_start();
+// catalog-service/api/books.php resolves $_GET['category'] and $_GET['search']
+require __DIR__ . '/../catalog-service/api/books.php';
+$cat_response = json_decode(ob_get_clean(), true);
+$books_data = $cat_response['data'] ?? [];
+
+// 5. Merge stock levels into book catalog list
+$filtered_books = [];
+foreach ($books_data as $book) {
+    $isbn = $book['isbn'];
+    $book['stock'] = $stock_map[$isbn] ?? 0;
+    $filtered_books[] = $book;
 }
 ?>
 <!DOCTYPE html>
@@ -155,7 +161,6 @@ if (isset($_GET['add_cart_id'])) {
     <div class="card border-0 shadow-sm p-3 mb-4 rounded-3 bg-white">
       <form method="GET" action="books.php" class="row g-3">
         <!-- Category Pill Selectors -->
-        <input type="hidden" name="category" value="<?php echo escape($selected_category); ?>" id="category_hidden">
         
         <div class="col-12 col-lg-8 d-flex flex-wrap gap-2 align-items-center">
           <span class="text-secondary small fw-bold text-uppercase me-2">Categories:</span>
@@ -201,12 +206,12 @@ if (isset($_GET['add_cart_id'])) {
         <?php foreach ($filtered_books as $book): ?>
           <div class="col">
             <div class="card h-100 premium-card">
-              <!-- Book Cover Placeholder Representation -->
-              <div class="card-header bg-light border-0 py-4 d-flex justify-content-center align-items-center" style="height: 180px;">
-                <div class="text-center">
-                  <i class="bi <?php echo $book['icon']; ?> <?php echo $book['icon_color']; ?> display-4 mb-2"></i>
-                  <div class="text-muted small fs-6">ISBN: <?php echo escape($book['isbn']); ?></div>
-                </div>
+              <div class="book-card-cover
+                <?php echo getBookCoverClass($book['category']); ?>">
+                <i class="bi <?php echo $book['icon']; ?> book-icon"></i>
+                <span class="book-isbn">
+                  <?php echo escape($book['isbn']); ?>
+                </span>
               </div>
               
               <!-- Card details -->
@@ -265,5 +270,7 @@ if (isset($_GET['add_cart_id'])) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Shared JS logic -->
   <script src="<?php echo $base_url; ?>assets/js/shared.js"></script>
+  <!-- UI Enhancement logic -->
+  <script src="<?php echo $base_url; ?>assets/js/ui.js"></script>
 </body>
 </html>

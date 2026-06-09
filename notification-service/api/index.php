@@ -1,7 +1,14 @@
 <?php
-header('Content-Type: application/json');
-echo json_encode([
+/**
+ * notification-service/api/index.php
+ * Notification Service entry point.
+ */
+require_once __DIR__ . '/../../shared/utils/response.php';
+
+jsonResponse([
     'service' => 'notification-service',
     'status' => 'ok',
-    'message' => 'Starter endpoint is running.'
-]);
+    'endpoints' => [
+        'notify.php'
+    ]
+], 200);

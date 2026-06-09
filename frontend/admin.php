@@ -3,64 +3,38 @@
 $page_title = "Admin Dashboard - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
-// Ensure inventory session database is initialized to aggregate metrics
-if (!isset($_SESSION['inventory_db'])) {
-    $_SESSION['inventory_db'] = [
-        ['id' => 1, 'title' => 'Introduction to Algorithms', 'isbn' => '978-0262033848', 'category' => 'Technology', 'stock' => 12, 'threshold' => 10],
-        ['id' => 2, 'title' => 'Clean Code', 'isbn' => '978-0132350884', 'category' => 'Technology', 'stock' => 3, 'threshold' => 8],
-        ['id' => 3, 'title' => 'Dune', 'isbn' => '978-0441172719', 'category' => 'Fiction', 'stock' => 25, 'threshold' => 5],
-        ['id' => 4, 'title' => 'The Lean Startup', 'isbn' => '978-0307887894', 'category' => 'Business', 'stock' => 0, 'threshold' => 5],
-        ['id' => 5, 'title' => 'A Brief History of Time', 'isbn' => '978-0553380163', 'category' => 'Science', 'stock' => 8, 'threshold' => 10],
-        ['id' => 6, 'title' => 'Thinking, Fast and Slow', 'isbn' => '978-0374533557', 'category' => 'Science', 'stock' => 15, 'threshold' => 10]
-    ];
+// Access Guard: Ensure user is logged in as admin
+if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    header('Location: login.php');
+    exit;
 }
 
-// Ensure orders session database is initialized to aggregate metrics
-if (!isset($_SESSION['orders_db'])) {
-    $_SESSION['orders_db'] = [
-        [
-            'id' => 'ORD-2026-98101',
-            'customer' => 'Alice Vance',
-            'email' => 'alice@university.edu',
-            'date' => '2026-05-25 10:42 AM',
-            'total' => 127.49,
-            'status' => 'Pending',
-            'items' => [
-                ['title' => 'Introduction to Algorithms', 'qty' => 1, 'price' => 89.99],
-                ['title' => 'Clean Code', 'qty' => 1, 'price' => 37.50]
-            ]
-        ],
-        [
-            'id' => 'ORD-2026-98102',
-            'customer' => 'Bob Miller',
-            'email' => 'bob.m@university.edu',
-            'date' => '2026-05-24 03:15 PM',
-            'total' => 29.98,
-            'status' => 'Shipped',
-            'items' => [
-                ['title' => 'Dune', 'qty' => 2, 'price' => 14.99]
-            ]
-        ],
-        [
-            'id' => 'ORD-2026-98103',
-            'customer' => 'Charlie Stone',
-            'email' => 'cstone@university.edu',
-            'date' => '2026-05-22 06:12 PM',
-            'total' => 39.99,
-            'status' => 'Delivered',
-            'items' => [
-                ['title' => 'A Brief History of Time', 'qty' => 1, 'price' => 18.99],
-                ['title' => 'Thinking, Fast and Slow', 'qty' => 1, 'price' => 21.00]
-            ]
-        ]
-    ];
-}
+// 1. Fetch live inventory from inventory-service
+ob_start();
+$old_get = $_GET;
+$_GET = [];
+require __DIR__ . '/../inventory-service/api/inventory.php';
+$inv_response = json_decode(ob_get_clean(), true);
+$inventory = $inv_response['data'] ?? [];
+$_GET = $old_get; // restore
 
-// 1. Calculate Real-time Dashboard Metrics
-$catalog_size = count($_SESSION['inventory_db']);
+// Populate session inventory to support downstream HTML rendering loops
+$_SESSION['inventory_db'] = $inventory;
+
+// 2. Fetch live orders from order-service
+ob_start();
+$old_get = $_GET;
+$_GET = [];
+require __DIR__ . '/../order-service/api/orders.php';
+$orders_response = json_decode(ob_get_clean(), true);
+$orders = $orders_response['data'] ?? [];
+$_GET = $old_get; // restore
+
+// 3. Calculate Real-time Dashboard Metrics from live data
+$catalog_size = count($inventory);
 
 $low_stock_count = 0;
-foreach ($_SESSION['inventory_db'] as $item) {
+foreach ($inventory as $item) {
     if ($item['stock'] <= $item['threshold']) {
         $low_stock_count++;
     }
@@ -68,14 +42,24 @@ foreach ($_SESSION['inventory_db'] as $item) {
 
 $pending_orders_count = 0;
 $total_revenue = 0.0;
-foreach ($_SESSION['orders_db'] as $order) {
+foreach ($orders as $order) {
     if ($order['status'] === 'Pending') {
         $pending_orders_count++;
     }
     if ($order['status'] !== 'Cancelled') {
-        $total_revenue += $order['total'];
+        $total_revenue += (float)$order['total'];
     }
 }
+
+$shipped_count = 0;
+$delivered_count = 0;
+$cancelled_count = 0;
+foreach ($orders as $order) {
+    if ($order['status'] === 'Shipped')   $shipped_count++;
+    if ($order['status'] === 'Delivered') $delivered_count++;
+    if ($order['status'] === 'Cancelled') $cancelled_count++;
+}
+$normal_stock_count = $catalog_size - $low_stock_count;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -107,60 +91,70 @@ foreach ($_SESSION['orders_db'] as $order) {
     </div>
 
     <!-- Quick Metrics Cards -->
-    <div class="row g-3 mb-5">
-      <!-- Metric 1: Total Revenue -->
+    <div class="row g-3 mb-4">
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3">
-          <div class="card-body">
-            <div class="p-2 bg-success bg-opacity-10 text-success rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-cash-stack fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Total Sales Revenue</span>
-            <strong class="h3 fw-bold text-dark font-monospace d-block mt-1">$<?php echo number_format($total_revenue, 2); ?></strong>
-            <small class="text-success small fw-semibold"><i class="bi bi-graph-up me-1"></i>Active Orders</small>
+        <div class="stat-card accent-green">
+          <p class="stat-label">Total Sales Revenue</p>
+          <div class="stat-value">
+            $<?php echo number_format($total_revenue, 2); ?>
+          </div>
+          <div class="stat-trend text-success">
+            <i class="bi bi-graph-up me-1"></i>Active Orders
           </div>
         </div>
       </div>
-
-      <!-- Metric 2: Catalog Size -->
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3">
-          <div class="card-body">
-            <div class="p-2 bg-primary bg-opacity-10 text-primary rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-journals fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Catalog Listings</span>
-            <strong class="h3 fw-bold text-dark font-monospace d-block mt-1"><?php echo $catalog_size; ?></strong>
-            <small class="text-primary small fw-semibold"><i class="bi bi-tags me-1"></i>Published entries</small>
+        <div class="stat-card accent-blue">
+          <p class="stat-label">Catalog Listings</p>
+          <div class="stat-value"><?php echo $catalog_size; ?></div>
+          <div class="stat-trend text-primary">
+            <i class="bi bi-tags me-1"></i>Published entries
           </div>
         </div>
       </div>
-
-      <!-- Metric 3: Pending Checkouts -->
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3">
-          <div class="card-body">
-            <div class="p-2 bg-warning bg-opacity-10 text-warning rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-hourglass-split fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Pending Checkouts</span>
-            <strong class="h3 fw-bold text-dark font-monospace d-block mt-1"><?php echo $pending_orders_count; ?></strong>
-            <small class="text-warning small fw-semibold"><i class="bi bi-exclamation-circle me-1"></i>Requires actions</small>
+        <div class="stat-card accent-yellow">
+          <p class="stat-label">Pending Checkouts</p>
+          <div class="stat-value">
+            <?php echo $pending_orders_count; ?>
+          </div>
+          <div class="stat-trend text-warning">
+            <i class="bi bi-exclamation-circle me-1"></i>Requires action
           </div>
         </div>
       </div>
-
-      <!-- Metric 4: Low Stock Alerts -->
       <div class="col-6 col-lg-3">
-        <div class="card premium-card border-0 shadow-sm h-100 text-center py-3 <?php echo ($low_stock_count > 0) ? 'border-warning-glow low-stock-pulse' : ''; ?>">
-          <div class="card-body">
-            <div class="p-2 bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex mb-2">
-              <i class="bi bi-exclamation-triangle fs-4 px-1"></i>
-            </div>
-            <span class="text-secondary small fw-bold d-block text-uppercase">Low Stock Alerts</span>
-            <strong class="h3 fw-bold text-danger font-monospace d-block mt-1"><?php echo $low_stock_count; ?></strong>
-            <small class="text-danger small fw-semibold"><i class="bi bi-arrow-down-circle me-1"></i>Needs restock</small>
+        <div class="stat-card accent-red
+          <?php echo ($low_stock_count > 0) ? 'low-stock-pulse' : ''; ?>">
+          <p class="stat-label">Low Stock Alerts</p>
+          <div class="stat-value text-danger">
+            <?php echo $low_stock_count; ?>
           </div>
+          <div class="stat-trend text-danger">
+            <i class="bi bi-arrow-down-circle me-1"></i>Needs restock
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+      <div class="col-md-8">
+        <div class="card border-0 shadow-sm rounded-3 p-4">
+          <h3 class="h6 fw-bold text-uppercase text-muted mb-3">
+            Order Status Distribution
+          </h3>
+          <div style="position:relative; height:220px;">
+            <canvas id="ordersBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-3 p-4">
+          <h3 class="h6 fw-bold text-uppercase text-muted mb-3">
+            Stock Health
+          </h3>
+          <canvas id="stockDoughnutChart"></canvas>
         </div>
       </div>
     </div>
@@ -209,7 +203,7 @@ foreach ($_SESSION['orders_db'] as $order) {
           </div>
           <div class="card-body p-0">
             <div class="table-responsive">
-              <table class="table table-hover align-middle mb-0">
+              <table class="data-table">
                 <thead class="table-light">
                   <tr class="small text-muted">
                     <th scope="col" class="ps-4">Book Title</th>
@@ -267,7 +261,70 @@ foreach ($_SESSION['orders_db'] as $order) {
 
   <!-- Bootstrap Bundle with Popper CDN -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Charts Initialization -->
+  <script>
+  // Order Status Bar Chart
+  new Chart(document.getElementById('ordersBarChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Pending','Shipped','Delivered','Cancelled'],
+      datasets: [{
+        data: [
+          <?php echo $pending_orders_count; ?>,
+          <?php echo $shipped_count; ?>,
+          <?php echo $delivered_count; ?>,
+          <?php echo $cancelled_count; ?>
+        ],
+        backgroundColor: ['#f59e0b','#3b82f6','#10b981','#ef4444'],
+        borderRadius: 6,
+        borderSkipped: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { stepSize: 1 },
+          grid: { color: '#f1f5f9' }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Stock Health Doughnut Chart
+  new Chart(document.getElementById('stockDoughnutChart'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Normal Stock','Low Stock'],
+      datasets: [{
+        data: [
+          <?php echo $normal_stock_count; ?>,
+          <?php echo $low_stock_count; ?>
+        ],
+        backgroundColor: ['#10b981','#ef4444'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '70%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 11 }, padding: 16 }
+        }
+      }
+    }
+  });
+  </script>
   <!-- Shared JS logic -->
   <script src="<?php echo $base_url; ?>assets/js/shared.js"></script>
+  <!-- UI Enhancement logic -->
+  <script src="<?php echo $base_url; ?>assets/js/ui.js"></script>
 </body>
 </html>
