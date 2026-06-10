@@ -136,4 +136,69 @@ class OrderModel {
             return [];
         }
     }
+
+    /**
+     * Retrieve an order details by ID (including items).
+     */
+    public function getOrderById(int $id): ?array {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM orders WHERE id = :id LIMIT 1");
+            $stmt->execute([':id' => $id]);
+            $order = $stmt->fetch();
+
+            if ($order) {
+                $order['items'] = $this->getOrderItems($order['order_ref']);
+                return $order;
+            }
+            return null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Update order details (customer, email, total, status).
+     */
+    public function updateOrder(
+        int $id,
+        string $customer,
+        string $email,
+        float $total,
+        string $status
+    ): bool {
+        $allowedStatuses = ['Pending', 'Shipped', 'Delivered', 'Cancelled'];
+        if (!in_array($status, $allowedStatuses)) {
+            return false;
+        }
+
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE orders 
+                SET customer = :customer, email = :email, total = :total, status = :status 
+                WHERE id = :id
+            ");
+            return $stmt->execute([
+                ':customer' => $customer,
+                ':email' => $email,
+                ':total' => $total,
+                ':status' => $status,
+                ':id' => $id
+            ]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Delete/Cancel order (soft cancellation by setting status to Cancelled).
+     */
+    public function deleteOrder(int $id): bool {
+        try {
+            $stmt = $this->pdo->prepare("UPDATE orders SET status = 'Cancelled' WHERE id = :id");
+            return $stmt->execute([':id' => $id]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }
+

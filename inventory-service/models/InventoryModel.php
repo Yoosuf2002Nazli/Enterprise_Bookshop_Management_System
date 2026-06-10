@@ -92,4 +92,93 @@ class InventoryModel {
             return false;
         }
     }
+
+    /**
+     * Retrieve inventory record by ID.
+     */
+    public function getById(int $id): ?array {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM inventory WHERE id = :id LIMIT 1");
+            $stmt->execute([':id' => $id]);
+            $item = $stmt->fetch();
+            return $item ?: null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Create new inventory record.
+     */
+    public function createInventory(
+        int $bookId,
+        string $isbn,
+        string $title,
+        string $category,
+        int $stock,
+        int $threshold
+    ): bool {
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO inventory (book_id, isbn, title, category, stock, threshold) 
+                VALUES (:book_id, :isbn, :title, :category, :stock, :threshold)
+            ");
+            return $stmt->execute([
+                ':book_id' => $bookId,
+                ':isbn' => $isbn,
+                ':title' => $title,
+                ':category' => $category,
+                ':stock' => $stock,
+                ':threshold' => $threshold
+            ]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Update an existing inventory record.
+     */
+    public function updateInventory(
+        int $id,
+        int $bookId,
+        string $isbn,
+        string $title,
+        string $category,
+        int $stock,
+        int $threshold
+    ): bool {
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE inventory 
+                SET book_id = :book_id, isbn = :isbn, title = :title, 
+                    category = :category, stock = :stock, threshold = :threshold 
+                WHERE id = :id
+            ");
+            return $stmt->execute([
+                ':book_id' => $bookId,
+                ':isbn' => $isbn,
+                ':title' => $title,
+                ':category' => $category,
+                ':stock' => $stock,
+                ':threshold' => $threshold,
+                ':id' => $id
+            ]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Delete an inventory record by ID.
+     */
+    public function deleteInventory(int $id): bool {
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM inventory WHERE id = :id");
+            return $stmt->execute([':id' => $id]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }
+

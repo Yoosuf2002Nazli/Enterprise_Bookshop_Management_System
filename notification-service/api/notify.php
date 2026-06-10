@@ -21,17 +21,48 @@ try {
 
     $action = $_GET['action'] ?? '';
     $method = $_SERVER['REQUEST_METHOD'];
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
-    // Route request depending on action and HTTP verb parameters
-    if ($action === 'log' && $method === 'POST') {
-        $notificationController->handleCreateLog($_POST);
-    } elseif (empty($action) && $method === 'GET') {
-        $notificationController->handleGetLogs($_GET);
+    // Parse body for JSON input
+    $requestData = $_POST;
+    $rawBody = file_get_contents('php://input');
+    if (!empty($rawBody)) {
+        $jsonBody = json_decode($rawBody, true);
+        if (is_array($jsonBody)) {
+            $requestData = array_merge($requestData, $jsonBody);
+        }
+    }
+
+    if ($method === 'GET') {
+        if ($id > 0) {
+            $notificationController->handleGetLogById($id);
+        } else {
+            $notificationController->handleGetLogs($_GET);
+        }
+    } elseif ($method === 'POST') {
+        if ($action === 'log') {
+            $notificationController->handleCreateLog($requestData);
+        } else {
+            // Also support post without action
+            $notificationController->handleCreateLog($requestData);
+        }
+    } elseif ($method === 'PUT') {
+        if ($id <= 0) {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid notification ID.'], 400);
+        } else {
+            $notificationController->handleUpdateLog($id, $requestData);
+        }
+    } elseif ($method === 'DELETE') {
+        if ($id <= 0) {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid notification ID.'], 400);
+        } else {
+            $notificationController->handleDeleteLog($id);
+        }
     } else {
         jsonResponse([
             'status' => 'error',
-            'message' => 'Bad Request: Action parameter or HTTP method mismatch.'
-        ], 400);
+            'message' => 'Method Not Allowed.'
+        ], 405);
     }
 
 } catch (Exception $e) {

@@ -10,13 +10,18 @@ require_once __DIR__ . '/../../shared/utils/response.php';
 require_once __DIR__ . '/../models/BookModel.php';
 require_once __DIR__ . '/../controllers/BookController.php';
 
-// 2. Enforce GET request method
-if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
-    jsonResponse([
-        'status' => 'error',
-        'message' => 'Method Not Allowed. Only GET requests are supported.'
-    ], 405);
-    return;
+// 2. Resolve request parameters and HTTP method
+$method = $_SERVER['REQUEST_METHOD'];
+$id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+// Parse request body for POST/PUT/DELETE JSON inputs
+$requestData = $_POST;
+$rawBody = file_get_contents('php://input');
+if (!empty($rawBody)) {
+    $jsonBody = json_decode($rawBody, true);
+    if (is_array($jsonBody)) {
+        $requestData = array_merge($requestData, $jsonBody);
+    }
 }
 
 // Load configurations
@@ -28,7 +33,32 @@ try {
     $bookModel = new BookModel($pdo);
     $bookController = new BookController($bookModel);
 
-    $bookController->handleGetBooks($_GET);
+    if ($method === 'GET') {
+        if ($id > 0) {
+            $bookController->handleGetBookById($id);
+        } else {
+            $bookController->handleGetBooks($_GET);
+        }
+    } elseif ($method === 'POST') {
+        $bookController->handleCreateBook($requestData);
+    } elseif ($method === 'PUT') {
+        if ($id <= 0) {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid book ID.'], 400);
+        } else {
+            $bookController->handleUpdateBook($id, $requestData);
+        }
+    } elseif ($method === 'DELETE') {
+        if ($id <= 0) {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid book ID.'], 400);
+        } else {
+            $bookController->handleDeleteBook($id);
+        }
+    } else {
+        jsonResponse([
+            'status' => 'error',
+            'message' => 'Method Not Allowed.'
+        ], 405);
+    }
 
 } catch (Exception $e) {
     jsonResponse([

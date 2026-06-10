@@ -24,34 +24,57 @@ try {
     $userModel = new UserModel($pdo);
     $authController = new AuthController($userModel);
 
-    // 4. Resolve the route action
+    // 4. Parse raw request body (JSON or Form-data)
+    $requestData = $_POST;
+    $rawBody = file_get_contents('php://input');
+    if (!empty($rawBody)) {
+        $jsonBody = json_decode($rawBody, true);
+        if (is_array($jsonBody)) {
+            $requestData = array_merge($requestData, $jsonBody);
+        }
+    }
+
     $action = $_GET['action'] ?? '';
+    $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+    $method = $_SERVER['REQUEST_METHOD'];
 
-    switch ($action) {
-        case 'register':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                jsonResponse(['status' => 'error', 'message' => 'Method Not Allowed'], 405);
-                return;
-            }
-            $authController->handleRegister($_POST);
-            break;
-
-        case 'login':
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                jsonResponse(['status' => 'error', 'message' => 'Method Not Allowed'], 405);
-                return;
-            }
-            $authController->handleLogin($_POST);
-            break;
-
-        case 'logout':
-            // Logout action is valid for both GET and POST requests
+    if ($method === 'GET') {
+        if ($action === 'logout') {
             $authController->handleLogout();
-            break;
-
-        default:
-            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Action parameter is invalid or missing.'], 400);
-            break;
+        } elseif ($id > 0) {
+            $authController->handleGetUserById($id);
+        } else {
+            if (in_array($action, ['register', 'login'])) {
+                jsonResponse(['status' => 'error', 'message' => 'Method Not Allowed'], 405);
+            } else {
+                $authController->handleGetUsers();
+            }
+        }
+    } elseif ($method === 'POST') {
+        if ($action === 'register') {
+            $authController->handleRegister($requestData);
+        } elseif ($action === 'login') {
+            $authController->handleLogin($requestData);
+        } elseif ($action === 'logout') {
+            $authController->handleLogout();
+        } else {
+            // Default POST can be register
+            $authController->handleRegister($requestData);
+        }
+    } elseif ($method === 'PUT') {
+        if ($id <= 0) {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid user ID.'], 400);
+        } else {
+            $authController->handleUpdateUser($id, $requestData);
+        }
+    } elseif ($method === 'DELETE') {
+        if ($id <= 0) {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid user ID.'], 400);
+        } else {
+            $authController->handleDeleteUser($id);
+        }
+    } else {
+        jsonResponse(['status' => 'error', 'message' => 'Method Not Allowed'], 405);
     }
 
 } catch (Exception $e) {

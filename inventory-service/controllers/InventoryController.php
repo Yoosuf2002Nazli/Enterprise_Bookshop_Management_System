@@ -91,4 +91,125 @@ class InventoryController {
             ], 400);
         }
     }
+
+    /**
+     * Handles fetching an inventory record by ID.
+     */
+    public function handleGetInventoryById(int $id): void {
+        $item = $this->model->getById($id);
+        if ($item === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Inventory record not found.'
+            ], 404);
+            return;
+        }
+        jsonResponse([
+            'status' => 'success',
+            'data' => $item
+        ], 200);
+    }
+
+    /**
+     * Handles creating a new inventory record.
+     */
+    public function handleCreateInventory(array $data): void {
+        $bookId = isset($data['book_id']) ? (int)$data['book_id'] : 0;
+        $isbn = trim($data['isbn'] ?? '');
+        $title = trim($data['title'] ?? '');
+        $category = trim($data['category'] ?? '');
+        $stock = isset($data['stock']) ? (int)$data['stock'] : 0;
+        $threshold = isset($data['threshold']) ? (int)$data['threshold'] : 5;
+
+        if ($bookId <= 0 || empty($isbn) || empty($title) || empty($category)) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Book ID, isbn, title, and category are required fields.'
+            ], 400);
+            return;
+        }
+
+        $success = $this->model->createInventory($bookId, $isbn, $title, $category, $stock, $threshold);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'Inventory record created successfully.'
+            ], 201);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to create inventory record.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handles updating an existing inventory record.
+     */
+    public function handleUpdateInventory(int $id, array $data): void {
+        $bookId = isset($data['book_id']) ? (int)$data['book_id'] : 0;
+        $isbn = trim($data['isbn'] ?? '');
+        $title = trim($data['title'] ?? '');
+        $category = trim($data['category'] ?? '');
+        $stock = isset($data['stock']) ? (int)$data['stock'] : 0;
+        $threshold = isset($data['threshold']) ? (int)$data['threshold'] : 5;
+
+        if ($bookId <= 0 || empty($isbn) || empty($title) || empty($category)) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Book ID, isbn, title, and category are required fields.'
+            ], 400);
+            return;
+        }
+
+        $item = $this->model->getById($id);
+        if ($item === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Inventory record not found.'
+            ], 404);
+            return;
+        }
+
+        $success = $this->model->updateInventory($id, $bookId, $isbn, $title, $category, $stock, $threshold);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'Inventory record updated successfully.'
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to update inventory record.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handles deleting an inventory record.
+     */
+    public function handleDeleteInventory(int $id): void {
+        $item = $this->model->getById($id);
+        if ($item === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Inventory record not found.'
+            ], 404);
+            return;
+        }
+
+        $success = $this->model->deleteInventory($id);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'Inventory record deleted successfully.'
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to delete inventory record.'
+            ], 500);
+        }
+    }
 }
+

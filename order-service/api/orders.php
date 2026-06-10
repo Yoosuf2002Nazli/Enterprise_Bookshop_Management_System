@@ -26,19 +26,57 @@ try {
 
     $action = $_GET['action'] ?? '';
     $method = $_SERVER['REQUEST_METHOD'];
+    $id = isset($_GET['id']) ? $_GET['id'] : '';
 
-    // Route request depending on HTTP verb and action parameters
-    if ($action === 'create' && $method === 'POST') {
-        $orderController->handleCreateOrder($_POST);
-    } elseif (($action === 'update_status' || in_array($action, ['Pending', 'Shipped', 'Delivered', 'Cancelled'])) && $method === 'GET') {
-        $orderController->handleUpdateStatus($_GET);
-    } elseif (empty($action) && $method === 'GET') {
-        $orderController->handleGetOrders($_GET);
+    // Parse body for JSON input
+    $requestData = $_POST;
+    $rawBody = file_get_contents('php://input');
+    if (!empty($rawBody)) {
+        $jsonBody = json_decode($rawBody, true);
+        if (is_array($jsonBody)) {
+            $requestData = array_merge($requestData, $jsonBody);
+        }
+    }
+
+    if ($method === 'GET') {
+        if ($action === 'update_status' || in_array($action, ['Pending', 'Shipped', 'Delivered', 'Cancelled'])) {
+            $orderController->handleUpdateStatus($_GET);
+        } elseif (is_numeric($id) && (int)$id > 0) {
+            $orderController->handleGetOrderById((int)$id);
+        } elseif (!empty($id)) {
+            $order = $orderModel->getOrderByRef($id);
+            if ($order) {
+                jsonResponse(['status' => 'success', 'data' => $order], 200);
+            } else {
+                jsonResponse(['status' => 'error', 'message' => 'Order not found.'], 404);
+            }
+        } else {
+            $orderController->handleGetOrders($_GET);
+        }
+    } elseif ($method === 'POST') {
+        if ($action === 'create') {
+            $orderController->handleCreateOrder($requestData);
+        } else {
+            // Also support POST without actions
+            $orderController->handleCreateOrder($requestData);
+        }
+    } elseif ($method === 'PUT') {
+        if (is_numeric($id) && (int)$id > 0) {
+            $orderController->handleUpdateOrder((int)$id, $requestData);
+        } else {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid order ID.'], 400);
+        }
+    } elseif ($method === 'DELETE') {
+        if (is_numeric($id) && (int)$id > 0) {
+            $orderController->handleDeleteOrder((int)$id);
+        } else {
+            jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid order ID.'], 400);
+        }
     } else {
         jsonResponse([
             'status' => 'error',
-            'message' => 'Bad Request: Action parameter or HTTP method mismatch.'
-        ], 400);
+            'message' => 'Method Not Allowed.'
+        ], 405);
     }
 
 } catch (Exception $e) {

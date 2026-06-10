@@ -3,6 +3,10 @@
 $page_title = "Customer Orders - Bookshop Management System";
 include_once __DIR__ . '/components/config.php';
 
+if (!isset($_SESSION['orders_db']) || !is_array($_SESSION['orders_db'])) {
+    $_SESSION['orders_db'] = [];
+}
+
 // Access Guard: Ensure user is logged in as admin or staff, or email has 'admin'
 $is_admin = false;
 if (isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true) {
@@ -86,6 +90,9 @@ foreach ($orders_data as $order) {
     $orders[] = $order;
 }
 
+$orders = is_array($orders ?? null) ? $orders : [];
+$totalOrders = count($orders);
+
 // Find selected order details if requested
 $selected_order = null;
 if (isset($_GET['view_id'])) {
@@ -125,7 +132,7 @@ header('Content-Type: text/html; charset=utf-8');
       </div>
       <div class="col-md-4 text-md-end">
         <span class="badge bg-secondary-subtle text-secondary-emphasis px-3 py-2 rounded-pill fw-semibold">
-          Total Orders Logged: <?php echo count($_SESSION['orders_db']); ?>
+          Total Orders Logged: <?php echo $totalOrders; ?>
         </span>
       </div>
     </div>
@@ -143,82 +150,90 @@ header('Content-Type: text/html; charset=utf-8');
       <!-- Main Table Column -->
       <div class="<?php echo ($selected_order) ? 'col-lg-7' : 'col-12'; ?> transition-all">
         <div class="card border-0 shadow-sm rounded-3 overflow-hidden bg-white">
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead class="table-light">
-                <tr>
-                  <th scope="col" class="ps-4">Order ID</th>
-                  <th scope="col">Customer</th>
-                  <th scope="col">Date</th>
-                  <th scope="col" class="text-center">Total Amount</th>
-                  <th scope="col" class="text-center">Status</th>
-                  <th scope="col" class="text-end pe-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                <?php foreach ($_SESSION['orders_db'] as $order): 
-                  // Configure status badge colors
-                  $status = $order['status'];
-                  $badge_color = 'bg-secondary';
-                  if ($status === 'Pending') $badge_color = 'bg-warning text-dark';
-                  elseif ($status === 'Shipped') $badge_color = 'bg-primary';
-                  elseif ($status === 'Delivered') $badge_color = 'bg-success';
-                  elseif ($status === 'Cancelled') $badge_color = 'bg-danger';
-                ?>
-                  <tr class="<?php echo ($selected_order && $selected_order['id'] === $order['id']) ? 'table-active fw-bold' : ''; ?>">
-                    <td class="ps-4">
-                      <a href="orders.php?view_id=<?php echo $order['id']; ?>" class="text-primary font-monospace text-decoration-none hover-underline small fw-bold">
-                        <?php echo escape($order['id']); ?>
-                      </a>
-                    </td>
-                    <td>
-                      <div class="fw-semibold text-dark"><?php echo escape($order['customer']); ?></div>
-                      <small class="text-muted small"><?php echo escape($order['email']); ?></small>
-                    </td>
-                    <td class="text-secondary small"><?php echo $order['date']; ?></td>
-                    <td class="text-center font-monospace text-dark fw-semibold">$<?php echo number_format($order['total'], 2); ?></td>
-                    <td class="text-center">
-                      <?php
-                        $dot_color = match($status) {
-                          'Pending'   => '#f59e0b',
-                          'Shipped'   => '#3b82f6',
-                          'Delivered' => '#10b981',
-                          'Cancelled' => '#ef4444',
-                          default     => '#94a3b8'
-                        };
-                      ?>
-                      <div class="d-flex align-items-center justify-content-center gap-2">
-                        <span class="status-dot"
-                          style="background-color:<?php echo $dot_color; ?>"></span>
-                        <span class="badge <?php echo $badge_color; ?> badge-pill-status">
-                          <?php echo $status; ?>
-                        </span>
-                      </div>
-                    </td>
-                    <td class="text-end pe-4">
-                      <!-- Dropdown Action list -->
-                      <div class="btn-group">
-                        <a href="orders.php?view_id=<?php echo $order['id']; ?>" class="btn btn-light btn-sm rounded-start-pill border border-end-0 px-3 fw-semibold">
-                          <i class="bi bi-eye-fill"></i> View
-                        </a>
-                        <button type="button" class="btn btn-light btn-sm dropdown-toggle dropdown-toggle-split rounded-end-pill border" data-bs-toggle="dropdown" aria-expanded="false">
-                          <span class="visually-hidden">Toggle Status</span>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end shadow">
-                          <li><h6 class="dropdown-header">Modify Status Pipeline</h6></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Pending"><i class="bi bi-hourglass text-warning"></i> Pending</a></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Shipped"><i class="bi bi-truck text-primary"></i> Shipped</a></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Delivered"><i class="bi bi-check-circle text-success"></i> Delivered</a></li>
-                          <li><hr class="dropdown-divider"></li>
-                          <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Cancelled"><i class="bi bi-x-circle text-danger"></i> Cancel Order</a></li>
-                        </ul>
-                      </div>
-                    </td>
+          <?php if (empty($orders)): ?>
+            <div class="p-4">
+              <div class="alert alert-info mb-0" role="alert">
+                <i class="bi bi-info-circle me-2"></i>No orders found.
+              </div>
+            </div>
+          <?php else: ?>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead class="table-light">
+                  <tr>
+                    <th scope="col" class="ps-4">Order ID</th>
+                    <th scope="col">Customer</th>
+                    <th scope="col">Date</th>
+                    <th scope="col" class="text-center">Total Amount</th>
+                    <th scope="col" class="text-center">Status</th>
+                    <th scope="col" class="text-end pe-4">Actions</th>
                   </tr>
-                <?php endforeach; ?>
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  <?php foreach ($orders as $order): 
+                    // Configure status badge colors
+                    $status = $order['status'];
+                    $badge_color = 'bg-secondary';
+                    if ($status === 'Pending') $badge_color = 'bg-warning text-dark';
+                    elseif ($status === 'Shipped') $badge_color = 'bg-primary';
+                    elseif ($status === 'Delivered') $badge_color = 'bg-success';
+                    elseif ($status === 'Cancelled') $badge_color = 'bg-danger';
+                  ?>
+                    <tr class="<?php echo ($selected_order && $selected_order['id'] === $order['id']) ? 'table-active fw-bold' : ''; ?>">
+                      <td class="ps-4">
+                        <a href="orders.php?view_id=<?php echo $order['id']; ?>" class="text-primary font-monospace text-decoration-none hover-underline small fw-bold">
+                          <?php echo escape($order['id']); ?>
+                        </a>
+                      </td>
+                      <td>
+                        <div class="fw-semibold text-dark"><?php echo escape($order['customer']); ?></div>
+                        <small class="text-muted small"><?php echo escape($order['email']); ?></small>
+                      </td>
+                      <td class="text-secondary small"><?php echo $order['date']; ?></td>
+                      <td class="text-center font-monospace text-dark fw-semibold">$<?php echo number_format($order['total'], 2); ?></td>
+                      <td class="text-center">
+                        <?php
+                          $dot_color = match($status) {
+                            'Pending'   => '#f59e0b',
+                            'Shipped'   => '#3b82f6',
+                            'Delivered' => '#10b981',
+                            'Cancelled' => '#ef4444',
+                            default     => '#94a3b8'
+                          };
+                        ?>
+                        <div class="d-flex align-items-center justify-content-center gap-2">
+                          <span class="status-dot"
+                            style="background-color:<?php echo $dot_color; ?>"></span>
+                          <span class="badge <?php echo $badge_color; ?> badge-pill-status">
+                            <?php echo $status; ?>
+                          </span>
+                        </div>
+                      </td>
+                      <td class="text-end pe-4">
+                        <!-- Dropdown Action list -->
+                        <div class="btn-group">
+                          <a href="orders.php?view_id=<?php echo $order['id']; ?>" class="btn btn-light btn-sm rounded-start-pill border border-end-0 px-3 fw-semibold">
+                            <i class="bi bi-eye-fill"></i> View
+                          </a>
+                          <button type="button" class="btn btn-light btn-sm dropdown-toggle dropdown-toggle-split rounded-end-pill border" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="visually-hidden">Toggle Status</span>
+                          </button>
+                          <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li><h6 class="dropdown-header">Modify Status Pipeline</h6></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Pending"><i class="bi bi-hourglass text-warning"></i> Pending</a></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Shipped"><i class="bi bi-truck text-primary"></i> Shipped</a></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Delivered"><i class="bi bi-check-circle text-success"></i> Delivered</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item d-flex align-items-center gap-2 text-danger" href="orders.php?view_id=<?php echo $order['id']; ?>&id=<?php echo $order['id']; ?>&action=Cancelled"><i class="bi bi-x-circle text-danger"></i> Cancel Order</a></li>
+                          </ul>
+                        </div>
+                      </td>
+                    </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          <?php endif; ?>
         </div>
       </div>
 
