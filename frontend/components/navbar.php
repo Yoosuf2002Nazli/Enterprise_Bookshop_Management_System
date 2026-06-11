@@ -32,7 +32,7 @@ if (!isset($base_url)) {
         <li class="nav-item">
           <a class="nav-link px-3 py-2 rounded-pill" href="<?php echo $base_url; ?>admin.php">Admin Dashboard</a>
         </li>
-        <?php if (isset($_SESSION['user_email'])): ?>
+        <?php if (isset($_SESSION['is_logged_in']) && $_SESSION['is_logged_in'] === true): ?>
           <li class="nav-item ms-lg-2">
             <span class="nav-link text-warning-glow small">
               <?php echo escape($_SESSION['user_email']); ?>

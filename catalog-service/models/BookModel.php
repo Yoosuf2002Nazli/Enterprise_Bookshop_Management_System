@@ -70,4 +70,84 @@ class BookModel {
             return null;
         }
     }
+
+    /**
+     * Create a new book.
+     */
+    public function createBook(
+        string $title,
+        string $author,
+        string $isbn,
+        string $category,
+        float $price,
+        ?string $icon,
+        ?string $icon_color
+    ): bool {
+        try {
+            $stmt = $this->pdo->prepare("
+                INSERT INTO books (title, author, isbn, category, price, icon, icon_color) 
+                VALUES (:title, :author, :isbn, :category, :price, :icon, :icon_color)
+            ");
+            return $stmt->execute([
+                ':title' => $title,
+                ':author' => $author,
+                ':isbn' => $isbn,
+                ':category' => $category,
+                ':price' => $price,
+                ':icon' => $icon ?: 'bi-book',
+                ':icon_color' => $icon_color ?: 'text-primary'
+            ]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Update an existing book's details.
+     */
+    public function updateBook(
+        int $id,
+        string $title,
+        string $author,
+        string $isbn,
+        string $category,
+        float $price,
+        ?string $icon,
+        ?string $icon_color
+    ): bool {
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE books 
+                SET title = :title, author = :author, isbn = :isbn, 
+                    category = :category, price = :price, 
+                    icon = :icon, icon_color = :icon_color 
+                WHERE id = :id
+            ");
+            return $stmt->execute([
+                ':title' => $title,
+                ':author' => $author,
+                ':isbn' => $isbn,
+                ':category' => $category,
+                ':price' => $price,
+                ':icon' => $icon ?: 'bi-book',
+                ':icon_color' => $icon_color ?: 'text-primary',
+                ':id' => $id
+            ]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Delete a book by ID.
+     */
+    public function deleteBook(int $id): bool {
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM books WHERE id = :id");
+            return $stmt->execute([':id' => $id]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }
+

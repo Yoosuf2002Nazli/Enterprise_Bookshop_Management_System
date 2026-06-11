@@ -59,4 +59,89 @@ class NotificationController {
             'data' => $logs
         ], 200);
     }
+
+    /**
+     * Handles fetching a single notification log by ID.
+     */
+    public function handleGetLogById(int $id): void {
+        $log = $this->model->getLogById($id);
+        if ($log === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Notification log not found.'
+            ], 404);
+            return;
+        }
+        jsonResponse([
+            'status' => 'success',
+            'data' => $log
+        ], 200);
+    }
+
+    /**
+     * Handles updating an existing notification log.
+     */
+    public function handleUpdateLog(int $id, array $data): void {
+        $type = trim($data['type'] ?? '');
+        $message = trim($data['message'] ?? '');
+        $referenceId = isset($data['reference_id']) ? trim($data['reference_id']) : null;
+
+        if (empty($type) || empty($message)) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Type and message are required fields.'
+            ], 400);
+            return;
+        }
+
+        $log = $this->model->getLogById($id);
+        if ($log === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Notification log not found.'
+            ], 404);
+            return;
+        }
+
+        $success = $this->model->updateLog($id, $type, $message, $referenceId);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'Notification log updated successfully.'
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to update notification log.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handles deleting a notification log.
+     */
+    public function handleDeleteLog(int $id): void {
+        $log = $this->model->getLogById($id);
+        if ($log === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Notification log not found.'
+            ], 404);
+            return;
+        }
+
+        $success = $this->model->deleteLog($id);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'Notification log deleted successfully.'
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to delete notification log.'
+            ], 500);
+        }
+    }
 }
+

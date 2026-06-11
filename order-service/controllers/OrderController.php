@@ -155,4 +155,90 @@ class OrderController {
             ], 400);
         }
     }
+
+    /**
+     * Handles retrieving an order by ID.
+     */
+    public function handleGetOrderById(int $id): void {
+        $order = $this->model->getOrderById($id);
+        if ($order === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Order not found.'
+            ], 404);
+            return;
+        }
+        jsonResponse([
+            'status' => 'success',
+            'data' => $order
+        ], 200);
+    }
+
+    /**
+     * Handles updating an existing order.
+     */
+    public function handleUpdateOrder(int $id, array $data): void {
+        $customer = trim($data['customer'] ?? '');
+        $email = trim($data['email'] ?? '');
+        $total = isset($data['total']) ? (float)$data['total'] : -1.0;
+        $status = trim($data['status'] ?? '');
+
+        if (empty($customer) || empty($email) || $total < 0 || empty($status)) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Customer, email, non-negative total, and status are required fields.'
+            ], 400);
+            return;
+        }
+
+        $order = $this->model->getOrderById($id);
+        if ($order === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Order not found.'
+            ], 404);
+            return;
+        }
+
+        $success = $this->model->updateOrder($id, $customer, $email, $total, $status);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'Order updated successfully.'
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to update order. Invalid status value.'
+            ], 400);
+        }
+    }
+
+    /**
+     * Handles deleting/cancelling an order.
+     */
+    public function handleDeleteOrder(int $id): void {
+        $order = $this->model->getOrderById($id);
+        if ($order === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Order not found.'
+            ], 404);
+            return;
+        }
+
+        $success = $this->model->deleteOrder($id);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'Order cancelled successfully.'
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to cancel order.'
+            ], 500);
+        }
+    }
 }
+

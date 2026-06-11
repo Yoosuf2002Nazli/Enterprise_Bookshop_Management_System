@@ -42,4 +42,52 @@ class NotificationModel {
             return [];
         }
     }
+
+    /**
+     * Retrieve a notification log by ID.
+     */
+    public function getLogById(int $id): ?array {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM notifications WHERE id = :id LIMIT 1");
+            $stmt->execute([':id' => $id]);
+            $log = $stmt->fetch();
+            return $log ?: null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Update an existing notification log.
+     */
+    public function updateLog(int $id, string $type, string $message, ?string $referenceId): bool {
+        try {
+            $stmt = $this->pdo->prepare("
+                UPDATE notifications 
+                SET type = :type, message = :message, reference_id = :reference_id 
+                WHERE id = :id
+            ");
+            return $stmt->execute([
+                ':type' => $type,
+                ':message' => $message,
+                ':reference_id' => $referenceId,
+                ':id' => $id
+            ]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Delete a notification log by ID.
+     */
+    public function deleteLog(int $id): bool {
+        try {
+            $stmt = $this->pdo->prepare("DELETE FROM notifications WHERE id = :id");
+            return $stmt->execute([':id' => $id]);
+        } catch (PDOException $e) {
+            return false;
+        }
+    }
 }
+

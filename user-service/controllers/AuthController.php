@@ -123,6 +123,7 @@ class AuthController {
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_role'] = $user['role'];
         $_SESSION['user_fullname'] = $user['fullname'];
+        $_SESSION['is_logged_in'] = true;
 
         // 5. Send successful response
         jsonResponse([
@@ -153,4 +154,120 @@ class AuthController {
             'message' => 'Logout successful.'
         ], 200);
     }
+
+    /**
+     * Handles retrieving all users.
+     */
+    public function handleGetUsers(): void {
+        $users = $this->model->getAllUsers();
+        jsonResponse([
+            'status' => 'success',
+            'data' => $users
+        ], 200);
+    }
+
+    /**
+     * Handles retrieving a single user by ID.
+     */
+    public function handleGetUserById(int $id): void {
+        $user = $this->model->getUserById($id);
+        if ($user === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'User not found.'
+            ], 404);
+            return;
+        }
+        jsonResponse([
+            'status' => 'success',
+            'data' => $user
+        ], 200);
+    }
+
+    /**
+     * Handles updating user details.
+     */
+    public function handleUpdateUser(int $id, array $data): void {
+        $fullname = trim($data['fullname'] ?? '');
+        $email = trim($data['email'] ?? '');
+        $role = trim($data['role'] ?? '');
+
+        if (empty($fullname) || empty($email) || empty($role)) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Fullname, email, and role are required fields.'
+            ], 400);
+            return;
+        }
+
+        if (!in_array($role, ['customer', 'staff'])) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Invalid role classification.'
+            ], 400);
+            return;
+        }
+
+        $user = $this->model->getUserById($id);
+        if ($user === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'User not found.'
+            ], 404);
+            return;
+        }
+
+        // Check if email is already in use by another user
+        $existing = $this->model->findByEmail($email);
+        if ($existing !== null && (int)$existing['id'] !== $id) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Email address is already registered.'
+            ], 409);
+            return;
+        }
+
+        $success = $this->model->updateUser($id, $fullname, $email, $role);
+        if ($success) {
+            $updated = $this->model->getUserById($id);
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'User updated successfully.',
+                'data' => $updated
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to update user due to a database error.'
+            ], 500);
+        }
+    }
+
+    /**
+     * Handles deleting a user by ID.
+     */
+    public function handleDeleteUser(int $id): void {
+        $user = $this->model->getUserById($id);
+        if ($user === null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'User not found.'
+            ], 404);
+            return;
+        }
+
+        $success = $this->model->deleteUser($id);
+        if ($success) {
+            jsonResponse([
+                'status' => 'success',
+                'message' => 'User deleted successfully.'
+            ], 200);
+        } else {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to delete user.'
+            ], 500);
+        }
+    }
 }
+
