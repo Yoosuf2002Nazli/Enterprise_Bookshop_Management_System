@@ -1,162 +1,165 @@
 # Bookshop Management System
 
 ## 1. Project Description
-Bookshop Management System is a university semester project built with PHP and MySQL on XAMPP. It uses a simplified microservices-inspired structure so beginner teams can work in parallel while keeping the project clean and professional.
+
+The Bookshop Management System is a university project built with PHP and MySQL for the Enterprise Software Design & Architecture module. It uses a simplified microservice-inspired architecture where the frontend and backend services are separated by local service ports.
+
+The system demonstrates:
+
+* frontend development
+* REST API implementation
+* database integration
+* service separation
+* system integration
+* final documentation and testing
 
 ## 2. Technology Stack
-- PHP
-- HTML
-- CSS
-- JavaScript
-- Bootstrap
-- MySQL
-- XAMPP (local Apache + MySQL)
 
-### Why We Chose This Stack
-We selected this technology stack to satisfy the **mandatory microservice architecture requirement** while optimizing for **beginner-friendly development and rapid team collaboration**. Here is our rationale:
+* PHP 8.0+
+* MySQL / MariaDB
+* HTML, CSS, JavaScript
+* Bootstrap 5
+* Postman
+* GitHub
+* XAMPP / PHP built-in development server
 
-- **PHP Backend:** Chosen as the primary backend language due to its ease of setup, simplicity in HTTP request handling, and built-in support for microservice patterns. PHP allows each service to be developed and deployed independently with minimal infrastructure complexity.
-- **XAMPP (Apache + MySQL):** Provides an all-in-one local development environment requiring no complex installation or configuration. This enables all team members to set up the development environment in minutes, reducing setup friction for beginners.
-- **Microservice Architecture:** Each business domain (User, Catalog, Inventory, Order, Notification) is implemented as an isolated service with its own database (`user_db`, `catalog_db`, `inventory_db`, `order_db`, `notification_db`). Services communicate via HTTP APIs, following true microservice design principles.
-- **HTML, CSS, JavaScript Frontend:** A lightweight frontend layer that integrates seamlessly with PHP APIs without requiring a heavy JavaScript framework, keeping the learning curve minimal.
-- **Bootstrap:** Provides professional, responsive UI components out of the box, enabling rapid UI development by beginners without extensive CSS expertise.
+## 3. Runtime Port Mapping
 
-This stack fulfills the **microservice architecture mandate** while keeping the project accessible to team members with varying levels of experience, making it ideal for a university semester project built by a diverse team.
+| Service / App        | Port | Base URL                                  | Database              |
+| -------------------- | ---: | ----------------------------------------- | --------------------- |
+| Frontend UI          | 8081 | `http://localhost:8081`                   | None                  |
+| User Service         | 8001 | `http://localhost:8001/api/auth.php`      | `user_db`             |
+| Catalog Service      | 8002 | `http://localhost:8002/api/books.php`     | `catalog_db`          |
+| Inventory Service    | 8003 | `http://localhost:8003/api/inventory.php` | `inventory_db`        |
+| Order Service        | 8004 | `http://localhost:8004/api/orders.php`    | `order_db`            |
+| Notification Service | 8005 | `http://localhost:8005/api/notify.php`    | `notification_db`     |
+| MySQL                | 3306 | `localhost:3306`                          | All project databases |
 
-## 3. Project Objectives
-- Build a beginner-friendly enterprise-style project structure.
-- Enable parallel development across team members.
-- Keep each module organized with clear ownership.
-- Practice clean coding, integration, and Git collaboration.
+## 4. Team Members and Roles
 
-## 4. Team Members
-- **Yoosuf** — Technical Lead & Integration
-- **Varshi** — User Service & Documentation
-- **Hijaz** — Catalog & Inventory Service
-- **Rishanthan** — Order & Notification Service
+| Member     | Role                         | Responsibilities                                                                                        |
+| ---------- | ---------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Yoosuf     | Technical Lead & Integration | Project structure, frontend integration, API coordination, database setup, debugging, final integration |
+| Varshi     | User Service & Documentation | Login/register module, user management, documentation, API testing                                      |
+| Hijaz      | Catalog & Inventory Service  | Book management, search functionality, inventory management, stock updates                              |
+| Rishanthan | Order & Notification Service | Order processing, checkout workflow, notifications, order history                                       |
 
-## 5. Folder Structure Explanation
+## 5. Project Folder Structure
+
 ```text
-bookshop-management-system/
-├── frontend/                  # UI layer (customer/admin pages and shared assets)
-│   ├── customer/
-│   ├── admin/
-│   ├── assets/
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   ├── components/
-│   └── index.php
-├── user-service/              # User module
-├── catalog-service/           # Catalog module
-├── inventory-service/         # Inventory module
-├── order-service/             # Order module
-├── notification-service/      # Notification module
-├── shared/                    # Shared config, DB helper, reusable utilities
-│   ├── config/
-│   ├── database/
-│   └── utils/
-├── docs/                      # Setup + workflow docs
-├── database/
-│   ├── sql/                   # SQL scripts
-│   └── diagrams/              # ER diagrams and schema images
-├── .gitignore
-├── README.md
-└── index.php
+Enterprise_Bookshop_Management_System/
+├── catalog-service/             # Catalog service, port 8002
+├── database/                    # SQL scripts and database diagrams
+│   ├── diagrams/
+│   └── sql/
+├── docs/                        # Complete project documentation
+│   ├── final-report-content/    # Report-ready draft sections
+│   ├── screenshots/             # Screenshot folders
+│   ├── testing/                 # Test logs and checklists
+│   └── *.md                     # Startup, architecture, API, and user guides
+├── frontend/                    # Web frontend UI, port 8081
+├── inventory-service/           # Inventory service, port 8003
+├── notification-service/        # Notification service, port 8005
+├── order-service/               # Order service, port 8004
+├── shared/                      # Shared database and response utilities
+├── tools/                       # Startup batch files
+└── user-service/                # User authentication service, port 8001
 ```
 
-## 6. Setup Instructions (Beginner Friendly)
-Detailed guide: `docs/setup-guide.md`
+## 6. Quick Start Instructions
 
-### Step-by-step (Windows + XAMPP)
-1. Install XAMPP.
-2. Start **Apache** and **MySQL** from XAMPP Control Panel.
-3. Clone the repo:
-   ```bash
-   git clone https://github.com/Yoosuf2002Nazli/Enterprise_Bookshop_Management_System.git
-   ```
-4. Move project into `C:\xampp\htdocs\bookshop-management-system`or `C:\xampp\htdocs\Enterprise_Bookshop_Management_System `
-5. Open `http://localhost/phpmyadmin`.
-6. Create/import databases using `database/sql/init_databases.sql, database/sql/catalog_service_schema.sql, database/sql/inventory_service_schema.sql`.
-7. Open `http://localhost/bookshop-management-system/`or `http://localhost/Enterprise_Bookshop_Management_System/`
+### Step 1: Start MySQL
 
-## 7. Database Setup Instructions
-This project uses one MySQL server (XAMPP) with separate databases per service:
-- `user_db`
-- `catalog_db`
-- `inventory_db`
-- `order_db`
-- `notification_db`
+Use XAMPP Control Panel or run:
 
-Each service owns its own database schema and data. This keeps modules independent while still running on one local MySQL server.
+```bash
+tools/start-mysql.bat
+```
 
-## 8. Running the Project Locally
-- Ensure Apache + MySQL are running in XAMPP.
-- Open browser:
-  - Home: `http://localhost/bookshop-management-system/` or `http://localhost/Enterprise_Bookshop_Management_System/`
-  - Frontend entry: `http://localhost/bookshop-management-system/frontend/` or  `http://localhost/Enterprise_Bookshop_Management_System/frontend/`
-- Test starter API endpoints:
-  - `/user-service/api/index.php`
-  - `/catalog-service/api/index.php`
-  - `/inventory-service/api/index.php`
-  - `/order-service/api/index.php`
-  - `/notification-service/api/index.php`
+If the database is not already imported, import:
 
-## 9. GitHub Workflow (Beginner Friendly)
-1. Clone repository once:
-   ```bash
-   git clone https://github.com/Yoosuf2002Nazli/Enterprise_Bookshop_Management_System.git
-   ```
-2. Pull latest changes before work:
-   ```bash
-   git pull origin main
-   ```
-3. Create or update files in your module.
-4. Commit clearly:
-   ```bash
-   git add .
-   git commit -m "Add user-service login API skeleton"
-   ```
-5. Push changes:
-   ```bash
-   git push origin <your-branch-name>
-   ```
+```text
+database/sql/init_databases.sql
+database/sql/phase2_schema.sql
+```
 
-## 10. Development Workflow
-- Pick tasks by module ownership.
-- Build feature in your service folder first.
-- Add or update frontend pages if needed.
-- Perform local testing with XAMPP.
-- Raise integration issues quickly to technical lead.
+### Step 2: Start Microservices
 
-## 11. Team Development Rules
-- Pull latest code before starting work.
-- Push changes daily.
-- Do not modify another member's module without notice.
-- Test features before pushing.
-- Keep folder structure consistent.
-- Report integration issues immediately.
+Run:
 
-## 12. Contribution Rules
-- Keep changes small and focused.
-- Use meaningful commit messages.
-- Follow existing folder and naming conventions.
-- Avoid committing secrets or local environment files.
-- Update docs when setup or architecture changes.
+```bash
+tools/start-microservices.bat
+```
 
-## 13. API Module Overview
-Each service contains:
-- `api/` — HTTP endpoints (starter entry points included)
-- `config/` — service-level DB and config values
-- `models/` — data access/business entities
-- `controllers/` — request handling logic
+This starts the five backend services:
 
-### Service ownership overview
-- **User Service:** registration, login, profile management
-- **Catalog Service:** books, categories, search
-- **Inventory Service:** stock levels and updates
-- **Order Service:** cart, checkout, order processing
-- **Notification Service:** email/SMS notification logic (mock/local)
+```text
+User Service         → http://localhost:8001
+Catalog Service      → http://localhost:8002
+Inventory Service    → http://localhost:8003
+Order Service        → http://localhost:8004
+Notification Service → http://localhost:8005
+```
 
----
-For team process details, see `docs/team-workflow.md`.
+### Step 3: Start Frontend
+
+From the project root, run:
+
+```bash
+C:\xampp\php\php.exe -S localhost:8081 -t frontend
+```
+
+Open:
+
+```text
+http://localhost:8081
+```
+
+## 7. Verification
+
+Before final submission, verify:
+
+* MySQL is running on port `3306`
+* services are running on ports `8001–8005`
+* frontend is running on port `8081`
+* Postman API screenshots are captured
+* frontend screenshots are captured
+* all PHP files pass syntax checks
+* final documentation is complete
+
+## 8. Documentation Index
+
+Important documentation files are available in the `docs/` directory:
+
+```text
+docs/project-state.md
+docs/runtime-startup-guide.md
+docs/system-architecture-summary.md
+docs/api-endpoint-reference.md
+docs/frontend-user-guide.md
+docs/database-design-guide.md
+docs/testing/final-verification-checklist.md
+docs/testing/postman-screenshot-checklist.md
+docs/testing/frontend-screenshot-checklist.md
+docs/troubleshooting-guide.md
+docs/final-report-content/
+```
+
+## 9. Final Deliverables
+
+The final project submission includes:
+
+* working frontend system
+* REST API implementation
+* database integration
+* service separation
+* API documentation
+* Postman testing screenshots
+* frontend screenshots
+* UML diagrams
+* source code repository
+* final project report
+
+## 10. Notes
+
+This project is an educational enterprise-inspired system. It is not intended to be a production-grade commercial deployment. The main goal is to demonstrate clear service separation, database integration, frontend-to-service communication, and complete project documentation.
