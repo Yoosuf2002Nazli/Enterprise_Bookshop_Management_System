@@ -8,13 +8,19 @@ $alert_type = '';
 
 // Handle registration form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Set route action for user-service registration
-    $_GET['action'] = 'register';
-    
-    // Capture the JSON response from user-service
-    ob_start();
-    require __DIR__ . '/../user-service/api/auth.php';
-    $response = json_decode(ob_get_clean(), true);
+    $fullname = trim($_POST['fullname'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+    $confirm_password = $_POST['confirm_password'] ?? '';
+    $role = trim($_POST['role'] ?? 'customer');
+
+    $response = makeServiceRequest(USER_SERVICE_URL . '?action=register', 'POST', [
+        'fullname' => $fullname,
+        'email' => $email,
+        'password' => $password,
+        'confirm_password' => $confirm_password,
+        'role' => $role
+    ]);
     
     if ($response && ($response['status'] ?? '') === 'success') {
         $alert_message = $response['message'] ?? 'Registration successful!';

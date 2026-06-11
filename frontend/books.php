@@ -23,13 +23,8 @@ if (isset($_GET['add_cart_id'])) {
     } else {
         // We need the book details (title, price) to place the order
         // First retrieve all books from catalog to find the book info
-        ob_start();
-        $old_get = $_GET;
-        $_GET = []; // clear to get all books
-        require __DIR__ . '/../catalog-service/api/books.php';
-        $cat_response = json_decode(ob_get_clean(), true);
+        $cat_response = makeServiceRequest(CATALOG_SERVICE_URL, 'GET');
         $books_data = $cat_response['data'] ?? [];
-        $_GET = $old_get; // restore
 
         $target_book = null;
         foreach ($books_data as $b) {
@@ -43,46 +38,25 @@ if (isset($_GET['add_cart_id'])) {
             $cart_alert = "Error: Book not found in the catalog.";
         } else {
             // Place the order via order-service POST action=create
-            $old_post = $_POST;
-            $old_get = $_GET;
-            
-            $_POST = [
+            $order_res = makeServiceRequest(ORDER_SERVICE_URL . '?action=create', 'POST', [
                 'customer' => $_SESSION['user_fullname'] ?? $_SESSION['user_email'],
                 'email' => $_SESSION['user_email'],
                 'book_id' => $target_book['id'],
                 'book_title' => $target_book['title'],
                 'qty' => 1,
                 'price' => $target_book['price']
-            ];
-            $_GET = ['action' => 'create'];
-            
-            ob_start();
-            require __DIR__ . '/../order-service/api/orders.php';
-            $order_res = json_decode(ob_get_clean(), true);
-            
-            $_POST = $old_post; // restore $_POST
-            $_GET = $old_get;   // restore $_GET
+            ]);
             
             if ($order_res && ($order_res['status'] ?? '') === 'success') {
                 $order_ref = $order_res['order_ref'] ?? '';
                 $cart_alert = "Success: Order <strong>" . escape($order_ref) . "</strong> has been created! <strong>" . escape($target_book['title']) . "</strong> has been purchased.";
                 
                 // Call notification-service POST action=log to log order placement
-                $old_post_notif = $_POST;
-                $old_get_notif = $_GET;
-                $_POST = [
+                makeServiceRequest(NOTIFICATION_SERVICE_URL . '?action=log', 'POST', [
                     'type' => 'order_placed',
                     'message' => 'Order placed by ' . $_SESSION['user_email'],
                     'reference_id' => $order_ref
-                ];
-                $_GET = ['action' => 'log'];
-                
-                ob_start();
-                require __DIR__ . '/../notification-service/api/notify.php';
-                ob_get_clean(); // discard notification response
-                
-                $_POST = $old_post_notif;
-                $_GET = $old_get_notif;
+                ]);
             } else {
                 $cart_alert = "Error: " . ($order_res['message'] ?? 'Failed to place order.');
             }
@@ -91,13 +65,8 @@ if (isset($_GET['add_cart_id'])) {
 }
 
 // 3. Load active stock levels from inventory-service
-ob_start();
-$old_get = $_GET;
-$_GET = []; // clear to load all inventory levels
-require __DIR__ . '/../inventory-service/api/inventory.php';
-$inv_response = json_decode(ob_get_clean(), true);
+$inv_response = makeServiceRequest(INVENTORY_SERVICE_URL, 'GET');
 $inventory_data = $inv_response['data'] ?? [];
-$_GET = $old_get; // restore
 
 $stock_map = [];
 foreach ($inventory_data as $inv) {
@@ -105,10 +74,11 @@ foreach ($inventory_data as $inv) {
 }
 
 // 4. Retrieve filtered/searched books from catalog-service
-ob_start();
 // catalog-service/api/books.php resolves $_GET['category'] and $_GET['search']
-require __DIR__ . '/../catalog-service/api/books.php';
-$cat_response = json_decode(ob_get_clean(), true);
+$cat_response = makeServiceRequest(CATALOG_SERVICE_URL, 'GET', [
+    'category' => $selected_category,
+    'search' => $search_query
+]);
 $books_data = $cat_response['data'] ?? [];
 
 // 5. Merge stock levels into book catalog list

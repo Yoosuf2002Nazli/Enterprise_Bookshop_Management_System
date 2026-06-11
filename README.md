@@ -1,151 +1,81 @@
 # Bookshop Management System
 
 ## 1. Project Description
-Bookshop Management System is a university semester project built with PHP and MySQL on XAMPP. It uses a simplified microservices-inspired structure so beginner teams can work in parallel while keeping the project clean and professional.
-
-## 2. Technology Stack
-- PHP
-- HTML
-- CSS
-- JavaScript
-- Bootstrap
-- MySQL
-- XAMPP (local Apache + MySQL)
-
-## 3. Project Objectives
-- Build a beginner-friendly enterprise-style project structure.
-- Enable parallel development across team members.
-- Keep each module organized with clear ownership.
-- Practice clean coding, integration, and Git collaboration.
-
-## 4. Team Members
-- **Yoosuf** — Technical Lead & Integration
-- **Varshi** — User Service & Documentation
-- **Hijaz** — Catalog & Inventory Service
-- **Rishanthan** — Order & Notification Service
-
-## 5. Folder Structure Explanation
-```text
-bookshop-management-system/
-├── frontend/                  # UI layer (customer/admin pages and shared assets)
-│   ├── customer/
-│   ├── admin/
-│   ├── assets/
-│   │   ├── css/
-│   │   ├── js/
-│   │   └── images/
-│   ├── components/
-│   └── index.php
-├── user-service/              # User module
-├── catalog-service/           # Catalog module
-├── inventory-service/         # Inventory module
-├── order-service/             # Order module
-├── notification-service/      # Notification module
-├── shared/                    # Shared config, DB helper, reusable utilities
-│   ├── config/
-│   ├── database/
-│   └── utils/
-├── docs/                      # Setup + workflow docs
-├── database/
-│   ├── sql/                   # SQL scripts
-│   └── diagrams/              # ER diagrams and schema images
-├── .gitignore
-├── README.md
-└── index.php
-```
-
-## 6. Setup Instructions (Beginner Friendly)
-Detailed guide: `docs/setup-guide.md`
-
-### Step-by-step (Windows + XAMPP)
-1. Install XAMPP.
-2. Start **Apache** and **MySQL** from XAMPP Control Panel.
-3. Clone the repo:
-   ```bash
-   git clone https://github.com/Yoosuf2002Nazli/Enterprise_Bookshop_Management_System.git
-   ```
-4. Move project into `C:\xampp\htdocs\bookshop-management-system`.
-5. Open `http://localhost/phpmyadmin`.
-6. Create/import databases using `database/sql/init_databases.sql`.
-7. Open `http://localhost/bookshop-management-system/`.
-
-## 7. Database Setup Instructions
-This project uses one MySQL server (XAMPP) with separate databases per service:
-- `user_db`
-- `catalog_db`
-- `inventory_db`
-- `order_db`
-- `notification_db`
-
-Each service owns its own database schema and data. This keeps modules independent while still running on one local MySQL server.
-
-## 8. Running the Project Locally
-- Ensure Apache + MySQL are running in XAMPP.
-- Open browser:
-  - Home: `http://localhost/bookshop-management-system/`
-  - Frontend entry: `http://localhost/bookshop-management-system/frontend/`
-- Test starter API endpoints:
-  - `/user-service/api/index.php`
-  - `/catalog-service/api/index.php`
-  - `/inventory-service/api/index.php`
-  - `/order-service/api/index.php`
-  - `/notification-service/api/index.php`
-
-## 9. GitHub Workflow (Beginner Friendly)
-1. Clone repository once:
-   ```bash
-   git clone https://github.com/Yoosuf2002Nazli/Enterprise_Bookshop_Management_System.git
-   ```
-2. Pull latest changes before work:
-   ```bash
-   git pull origin main
-   ```
-3. Create or update files in your module.
-4. Commit clearly:
-   ```bash
-   git add .
-   git commit -m "Add user-service login API skeleton"
-   ```
-5. Push changes:
-   ```bash
-   git push origin <your-branch-name>
-   ```
-
-## 10. Development Workflow
-- Pick tasks by module ownership.
-- Build feature in your service folder first.
-- Add or update frontend pages if needed.
-- Perform local testing with XAMPP.
-- Raise integration issues quickly to technical lead.
-
-## 11. Team Development Rules
-- Pull latest code before starting work.
-- Push changes daily.
-- Do not modify another member's module without notice.
-- Test features before pushing.
-- Keep folder structure consistent.
-- Report integration issues immediately.
-
-## 12. Contribution Rules
-- Keep changes small and focused.
-- Use meaningful commit messages.
-- Follow existing folder and naming conventions.
-- Avoid committing secrets or local environment files.
-- Update docs when setup or architecture changes.
-
-## 13. API Module Overview
-Each service contains:
-- `api/` — HTTP endpoints (starter entry points included)
-- `config/` — service-level DB and config values
-- `models/` — data access/business entities
-- `controllers/` — request handling logic
-
-### Service ownership overview
-- **User Service:** registration, login, profile management
-- **Catalog Service:** books, categories, search
-- **Inventory Service:** stock levels and updates
-- **Order Service:** cart, checkout, order processing
-- **Notification Service:** email/SMS notification logic (mock/local)
+The Bookshop Management System is a university project built with PHP and MySQL. It uses a **simplified microservices-inspired architecture** designed for the **Enterprise Software Design & Architecture** course, enabling team members to work in parallel on isolated service modules communicating via network boundaries.
 
 ---
-For team process details, see `docs/team-workflow.md`.
+
+## 2. Technology Stack & Ports Mappings
+* **PHP 8.0+**
+* **MySQL / MariaDB** (standard port `3306`)
+* **Bootstrap 5** & Vanilla CSS/JS
+* **Postman** (for API testing)
+
+| Service / App | Port | Base URL | Database Name |
+| :--- | :--- | :--- | :--- |
+| **Frontend UI (PHP SSR)** | `8081` | [http://localhost:8081](http://localhost:8081) | None (uses cURL calls) |
+| **User Service** | `8001` | [http://localhost:8001/api/auth.php](http://localhost:8001/api/auth.php) | `user_db` |
+| **Catalog Service** | `8002` | [http://localhost:8002/api/books.php](http://localhost:8002/api/books.php) | `catalog_db` |
+| **Inventory Service** | `8003` | [http://localhost:8003/api/inventory.php](http://localhost:8003/api/inventory.php) | `inventory_db` |
+| **Order Service** | `8004` | [http://localhost:8004/api/orders.php](http://localhost:8004/api/orders.php) | `order_db` |
+| **Notification Service**| `8005` | [http://localhost:8005/api/notify.php](http://localhost:8005/api/notify.php) | `notification_db` |
+
+---
+
+## 3. Team Members & Roles
+* **Yoosuf** — Technical Lead & Integration
+* **Varshi** — User Service & Documentation
+* **Hijaz** — Catalog & Inventory Service
+* **Rishanthan** — Order & Notification Service
+
+---
+
+## 4. Decoupled Folder Structure
+```text
+Enterprise_Bookshop_Management_System/
+├── catalog-service/             # Catalog service (port 8002)
+├── database/                    # SQL scripts and database diagrams
+│   ├── diagrams/
+│   └── sql/
+├── docs/                        # Complete project documentation
+│   ├── final-report-content/    # Report-ready draft sections (01 to 08)
+│   ├── screenshots/             # Screenshots placeholders
+│   ├── testing/                 # Test logs and checklists
+│   └── *.md                     # Startup, architecture, and user guides
+├── frontend/                    # Web frontend UI (port 8081)
+├── inventory-service/           # Inventory service (port 8003)
+├── notification-service/        # Notification service (port 8005)
+├── order-service/               # Order service (port 8004)
+├── shared/                      # Database connection and response templates
+├── tools/                       # Service and database startup batch files
+└── user-service/                # User authentication service (port 8001)
+```
+
+---
+
+## 5. Quick Start Instructions (Windows + XAMPP)
+
+1. **Database Setup:**
+   * Start MySQL from XAMPP Control Panel.
+   * Import the initial creation script `database/sql/init_databases.sql`.
+   * Import schemas and seed data using `database/sql/phase2_schema.sql`.
+
+2. **Launch Databases & Microservices:**
+   * Double-click `tools/start-mysql.bat` (or start MySQL in XAMPP panel).
+   * Double-click `tools/start-microservices.bat` to launch the 5 backend services in separate terminal windows.
+
+3. **Launch Frontend:**
+   * Run the command below at the project root to host the UI on port `8081`:
+     ```cmd
+     C:\xampp\php\php.exe -S localhost:8081 -t frontend
+     ```
+   * Open your browser and visit: **[http://localhost:8081](http://localhost:8081)**
+
+---
+
+## 6. Verification & Documentation Index
+All documentation files, testing evidence logs, and report content modules are housed under the **`docs/`** directory. Refer to:
+* **[docs/runtime-startup-guide.md](file:///c:/Users/ASUS/workspace/Projects/Enterprise_Bookshop_Management_System/docs/runtime-startup-guide.md)** for deep startup directions.
+* **[docs/system-architecture-summary.md](file:///c:/Users/ASUS/workspace/Projects/Enterprise_Bookshop_Management_System/docs/system-architecture-summary.md)** for structural component explanations.
+* **[docs/testing/phase4-final-test-log.md](file:///c:/Users/ASUS/workspace/Projects/Enterprise_Bookshop_Management_System/docs/testing/phase4-final-test-log.md)** for recent automated linter and integration testing logs.
+* **[docs/final-report-content/](file:///c:/Users/ASUS/workspace/Projects/Enterprise_Bookshop_Management_System/docs/final-report-content/)** for copy-pasteable university report drafts.

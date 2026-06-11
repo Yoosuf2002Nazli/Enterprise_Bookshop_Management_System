@@ -34,38 +34,18 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
     $valid_statuses = ['Pending', 'Shipped', 'Delivered', 'Cancelled'];
     if (in_array($new_status, $valid_statuses)) {
         // Call order-service to update status
-        $old_get = $_GET;
-        $_GET = [
-            'action' => 'update_status',
-            'id' => $order_id,
-            'status' => $new_status
-        ];
-        
-        ob_start();
-        require __DIR__ . '/../order-service/api/orders.php';
-        $update_res = json_decode(ob_get_clean(), true);
-        $_GET = $old_get; // restore GET
+        $update_res = makeServiceRequest(ORDER_SERVICE_URL . '?action=update_status&id=' . urlencode($order_id) . '&status=' . urlencode($new_status), 'GET');
         
         if ($update_res && ($update_res['status'] ?? '') === 'success') {
             $alert_message = "Order <strong>{$order_id}</strong> has been successfully marked as <strong>{$new_status}</strong>.";
             $alert_type = ($new_status === 'Cancelled') ? 'danger' : 'success';
             
             // Call notification-service to log the status change
-            $old_post_notif = $_POST;
-            $old_get_notif = $_GET;
-            $_POST = [
+            makeServiceRequest(NOTIFICATION_SERVICE_URL . '?action=log', 'POST', [
                 'type' => 'status_update',
                 'message' => "Order {$order_id} updated to {$new_status}",
                 'reference_id' => $order_id
-            ];
-            $_GET = ['action' => 'log'];
-            
-            ob_start();
-            require __DIR__ . '/../notification-service/api/notify.php';
-            ob_get_clean(); // discard response
-            
-            $_POST = $old_post_notif;
-            $_GET = $old_get_notif;
+            ]);
         } else {
             $alert_message = $update_res['message'] ?? "Failed to update order status.";
             $alert_type = "danger";
@@ -74,13 +54,8 @@ if (isset($_GET['action']) && isset($_GET['id'])) {
 }
 
 // Load orders from API
-$old_get = $_GET;
-$_GET = [];
-ob_start();
-require __DIR__ . '/../order-service/api/orders.php';
-$orders_response = json_decode(ob_get_clean(), true);
+$orders_response = makeServiceRequest(ORDER_SERVICE_URL, 'GET');
 $orders_data = $orders_response['data'] ?? [];
-$_GET = $old_get; // restore GET
 
 // Map order data structure to match frontend expectations (id = order_ref, date = created_at formatted)
 $orders = [];
