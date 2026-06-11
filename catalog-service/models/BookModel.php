@@ -3,17 +3,20 @@
  * BookModel
  * Data access layer for catalog_db.books table.
  */
-class BookModel {
+class BookModel
+{
     private PDO $pdo;
 
-    public function __construct(PDO $pdo) {
+    public function __construct(PDO $pdo)
+    {
         $this->pdo = $pdo;
     }
 
     /**
      * Retrieve all books from the catalog.
      */
-    public function getAllBooks(): array {
+    public function getAllBooks(): array
+    {
         try {
             // Select all rows ordered by their creation time
             $stmt = $this->pdo->query("SELECT * FROM books ORDER BY id ASC");
@@ -26,7 +29,8 @@ class BookModel {
     /**
      * Retrieve books matching a specific category.
      */
-    public function getBooksByCategory(string $category): array {
+    public function getBooksByCategory(string $category): array
+    {
         try {
             $stmt = $this->pdo->prepare("SELECT * FROM books WHERE category = :category ORDER BY id ASC");
             $stmt->execute([':category' => $category]);
@@ -39,7 +43,8 @@ class BookModel {
     /**
      * Search books by title, author, or ISBN.
      */
-    public function searchBooks(string $query): array {
+    public function searchBooks(string $query): array
+    {
         try {
             // Bind search query using wildcard match pattern
             $wildcardQuery = "%" . $query . "%";
@@ -60,7 +65,8 @@ class BookModel {
     /**
      * Retrieve details of a single book by ID.
      */
-    public function getBookById(int $id): ?array {
+    public function getBookById(int $id): ?array
+    {
         try {
             $stmt = $this->pdo->prepare("SELECT * FROM books WHERE id = :id LIMIT 1");
             $stmt->execute([':id' => $id]);
@@ -139,7 +145,7 @@ class BookModel {
             // 1. Inspect table columns to handle different schemas
             $columnsStmt = $this->pdo->query("DESCRIBE books");
             $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
-            
+
             // 2. Build SQL query dynamically
             $fields = [
                 'title = :title' => $title,
@@ -148,7 +154,7 @@ class BookModel {
                 'category = :category' => $category,
                 'price = :price' => $price
             ];
-            
+
             $params = [
                 ':title' => $title,
                 ':author' => $author,
@@ -157,17 +163,17 @@ class BookModel {
                 ':price' => $price,
                 ':id' => $id
             ];
-            
+
             if (in_array('icon', $columns)) {
                 $fields['icon = :icon'] = $icon ?: 'bi-book';
                 $params[':icon'] = $icon ?: 'bi-book';
             }
-            
+
             if (in_array('icon_color', $columns)) {
                 $fields['icon_color = :icon_color'] = $icon_color ?: 'text-primary';
                 $params[':icon_color'] = $icon_color ?: 'text-primary';
             }
-            
+
             $sql = "UPDATE books SET " . implode(', ', array_keys($fields)) . " WHERE id = :id";
             $stmt = $this->pdo->prepare($sql);
             return $stmt->execute($params);
@@ -179,7 +185,8 @@ class BookModel {
     /**
      * Delete a book by ID.
      */
-    public function deleteBook(int $id): bool {
+    public function deleteBook(int $id): bool
+    {
         try {
             $stmt = $this->pdo->prepare("DELETE FROM books WHERE id = :id");
             return $stmt->execute([':id' => $id]);
