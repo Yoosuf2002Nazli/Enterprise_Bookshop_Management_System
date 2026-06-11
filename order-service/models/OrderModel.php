@@ -59,7 +59,7 @@ class OrderModel {
         string $email,
         float $total,
         array $items
-    ): bool {
+    ): int {
         try {
             // Start transaction
             $this->pdo->beginTransaction();
@@ -75,6 +75,9 @@ class OrderModel {
                 ':email' => $email,
                 ':total' => $total
             ]);
+            
+            // Capture auto-increment order ID immediately after the orders insert
+            $orderId = (int)$this->pdo->lastInsertId();
 
             // 2. Insert line items
             $stmtItem = $this->pdo->prepare("
@@ -93,14 +96,14 @@ class OrderModel {
 
             // Commit transaction
             $this->pdo->commit();
-            return true;
+            return $orderId;
 
         } catch (Exception $e) {
             // Rollback changes on any failure
             if ($this->pdo->inTransaction()) {
                 $this->pdo->rollBack();
             }
-            return false;
+            return 0;
         }
     }
 

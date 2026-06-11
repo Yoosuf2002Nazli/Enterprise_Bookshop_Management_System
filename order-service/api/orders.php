@@ -24,11 +24,7 @@ try {
     $orderModel = new OrderModel($pdo);
     $orderController = new OrderController($orderModel);
 
-    $action = $_GET['action'] ?? '';
-    $method = $_SERVER['REQUEST_METHOD'];
-    $id = isset($_GET['id']) ? $_GET['id'] : '';
-
-    // Parse body for JSON input
+    // Parse body for JSON input first so we can read parameters from it
     $requestData = $_POST;
     $rawBody = file_get_contents('php://input');
     if (!empty($rawBody)) {
@@ -38,13 +34,30 @@ try {
         }
     }
 
+    $action = $_GET['action'] ?? '';
+    $method = $_SERVER['REQUEST_METHOD'];
+    
+    // Resolve identifier from query parameters or request body (supporting id and order_id)
+    $idVal = $_GET['id'] ?? $_GET['order_id'] ?? $requestData['id'] ?? $requestData['order_id'] ?? '';
+
+    // Convert string order reference (like ORD-...) to numeric database ID if needed
+    $numericId = 0;
+    if (is_numeric($idVal)) {
+        $numericId = (int)$idVal;
+    } elseif (!empty($idVal)) {
+        $orderObj = $orderModel->getOrderByRef($idVal);
+        if ($orderObj) {
+            $numericId = (int)$orderObj['id'];
+        }
+    }
+
     if ($method === 'GET') {
         if ($action === 'update_status' || in_array($action, ['Pending', 'Shipped', 'Delivered', 'Cancelled'])) {
             $orderController->handleUpdateStatus($_GET);
-        } elseif (is_numeric($id) && (int)$id > 0) {
-            $orderController->handleGetOrderById((int)$id);
-        } elseif (!empty($id)) {
-            $order = $orderModel->getOrderByRef($id);
+        } elseif (is_numeric($idVal) && (int)$idVal > 0) {
+            $orderController->handleGetOrderById((int)$idVal);
+        } elseif (!empty($idVal)) {
+            $order = $orderModel->getOrderByRef($idVal);
             if ($order) {
                 jsonResponse(['status' => 'success', 'data' => $order], 200);
             } else {
@@ -61,14 +74,14 @@ try {
             $orderController->handleCreateOrder($requestData);
         }
     } elseif ($method === 'PUT') {
-        if (is_numeric($id) && (int)$id > 0) {
-            $orderController->handleUpdateOrder((int)$id, $requestData);
+        if ($numericId > 0) {
+            $orderController->handleUpdateOrder($numericId, $requestData);
         } else {
             jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid order ID.'], 400);
         }
     } elseif ($method === 'DELETE') {
-        if (is_numeric($id) && (int)$id > 0) {
-            $orderController->handleDeleteOrder((int)$id);
+        if ($numericId > 0) {
+            $orderController->handleDeleteOrder($numericId);
         } else {
             jsonResponse(['status' => 'error', 'message' => 'Bad Request: Missing or invalid order ID.'], 400);
         }

@@ -84,19 +84,39 @@ class BookModel {
         ?string $icon_color
     ): bool {
         try {
-            $stmt = $this->pdo->prepare("
-                INSERT INTO books (title, author, isbn, category, price, icon, icon_color) 
-                VALUES (:title, :author, :isbn, :category, :price, :icon, :icon_color)
-            ");
-            return $stmt->execute([
+            $columnsStmt = $this->pdo->query("DESCRIBE books");
+            $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
+
+            $fields = ['title', 'author', 'isbn', 'category', 'price'];
+            $placeholders = [':title', ':author', ':isbn', ':category', ':price'];
+            $params = [
                 ':title' => $title,
                 ':author' => $author,
                 ':isbn' => $isbn,
                 ':category' => $category,
-                ':price' => $price,
-                ':icon' => $icon ?: 'bi-book',
-                ':icon_color' => $icon_color ?: 'text-primary'
-            ]);
+                ':price' => $price
+            ];
+
+            if (in_array('icon', $columns)) {
+                $fields[] = 'icon';
+                $placeholders[] = ':icon';
+                $params[':icon'] = $icon ?: 'bi-book';
+            }
+
+            if (in_array('icon_color', $columns)) {
+                $fields[] = 'icon_color';
+                $placeholders[] = ':icon_color';
+                $params[':icon_color'] = $icon_color ?: 'text-primary';
+            }
+
+            $sql = sprintf(
+                "INSERT INTO books (%s) VALUES (%s)",
+                implode(', ', $fields),
+                implode(', ', $placeholders)
+            );
+
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($params);
         } catch (PDOException $e) {
             return false;
         }
@@ -116,23 +136,41 @@ class BookModel {
         ?string $icon_color
     ): bool {
         try {
-            $stmt = $this->pdo->prepare("
-                UPDATE books 
-                SET title = :title, author = :author, isbn = :isbn, 
-                    category = :category, price = :price, 
-                    icon = :icon, icon_color = :icon_color 
-                WHERE id = :id
-            ");
-            return $stmt->execute([
+            // 1. Inspect table columns to handle different schemas
+            $columnsStmt = $this->pdo->query("DESCRIBE books");
+            $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // 2. Build SQL query dynamically
+            $fields = [
+                'title = :title' => $title,
+                'author = :author' => $author,
+                'isbn = :isbn' => $isbn,
+                'category = :category' => $category,
+                'price = :price' => $price
+            ];
+            
+            $params = [
                 ':title' => $title,
                 ':author' => $author,
                 ':isbn' => $isbn,
                 ':category' => $category,
                 ':price' => $price,
-                ':icon' => $icon ?: 'bi-book',
-                ':icon_color' => $icon_color ?: 'text-primary',
                 ':id' => $id
-            ]);
+            ];
+            
+            if (in_array('icon', $columns)) {
+                $fields['icon = :icon'] = $icon ?: 'bi-book';
+                $params[':icon'] = $icon ?: 'bi-book';
+            }
+            
+            if (in_array('icon_color', $columns)) {
+                $fields['icon_color = :icon_color'] = $icon_color ?: 'text-primary';
+                $params[':icon_color'] = $icon_color ?: 'text-primary';
+            }
+            
+            $sql = "UPDATE books SET " . implode(', ', array_keys($fields)) . " WHERE id = :id";
+            $stmt = $this->pdo->prepare($sql);
+            return $stmt->execute($params);
         } catch (PDOException $e) {
             return false;
         }
