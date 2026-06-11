@@ -78,6 +78,21 @@ class BookModel
     }
 
     /**
+     * Retrieve details of a single book by ISBN.
+     */
+    public function getBookByIsbn(string $isbn): ?array
+    {
+        try {
+            $stmt = $this->pdo->prepare("SELECT * FROM books WHERE isbn = :isbn LIMIT 1");
+            $stmt->execute([':isbn' => $isbn]);
+            $book = $stmt->fetch();
+            return $book ?: null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+
+    /**
      * Create a new book.
      */
     public function createBook(
@@ -88,7 +103,7 @@ class BookModel
         float $price,
         ?string $icon,
         ?string $icon_color
-    ): bool {
+    ): int {
         try {
             $columnsStmt = $this->pdo->query("DESCRIBE books");
             $columns = $columnsStmt->fetchAll(PDO::FETCH_COLUMN);
@@ -122,9 +137,10 @@ class BookModel
             );
 
             $stmt = $this->pdo->prepare($sql);
-            return $stmt->execute($params);
+            $success = $stmt->execute($params);
+            return $success ? (int)$this->pdo->lastInsertId() : 0;
         } catch (PDOException $e) {
-            return false;
+            return 0;
         }
     }
 

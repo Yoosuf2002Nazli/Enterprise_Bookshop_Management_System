@@ -82,11 +82,25 @@ class BookController {
             return;
         }
 
-        $success = $this->model->createBook($title, $author, $isbn, $category, $price, $icon, $icon_color);
-        if ($success) {
+        // Check for duplicate ISBN before creating to return a clear error
+        $existingBook = $this->model->getBookByIsbn($isbn);
+        if ($existingBook !== null) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Failed to create book (possibly duplicate ISBN or database error).'
+            ], 400);
+            return;
+        }
+
+        $bookId = $this->model->createBook($title, $author, $isbn, $category, $price, $icon, $icon_color);
+        if ($bookId > 0) {
             jsonResponse([
                 'status' => 'success',
-                'message' => 'Book created successfully.'
+                'message' => 'Book created successfully.',
+                'data' => [
+                    'id' => $bookId,
+                    'isbn' => $isbn
+                ]
             ], 201);
         } else {
             jsonResponse([
@@ -130,6 +144,16 @@ class BookController {
                 'status' => 'error',
                 'message' => 'Book not found.'
             ], 404);
+            return;
+        }
+
+        // Check if the ISBN belongs to another book record
+        $existingBook = $this->model->getBookByIsbn($isbn);
+        if ($existingBook !== null && (int)$existingBook['id'] !== $id) {
+            jsonResponse([
+                'status' => 'error',
+                'message' => 'Conflict: ISBN already exists for another book.'
+            ], 409);
             return;
         }
 
