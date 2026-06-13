@@ -20,25 +20,15 @@ if (!$is_admin) {
 }
 
 // 1. Fetch live inventory from inventory-service
-ob_start();
-$old_get = $_GET;
-$_GET = [];
-require __DIR__ . '/../inventory-service/api/inventory.php';
-$inv_response = json_decode(ob_get_clean(), true);
+$inv_response = makeServiceRequest(INVENTORY_SERVICE_URL, 'GET');
 $inventory = $inv_response['data'] ?? [];
-$_GET = $old_get; // restore
 
 // Populate session inventory to support downstream HTML rendering loops
 $_SESSION['inventory_db'] = $inventory;
 
 // 2. Fetch live orders from order-service
-ob_start();
-$old_get = $_GET;
-$_GET = [];
-require __DIR__ . '/../order-service/api/orders.php';
-$orders_response = json_decode(ob_get_clean(), true);
+$orders_response = makeServiceRequest(ORDER_SERVICE_URL, 'GET');
 $orders = $orders_response['data'] ?? [];
-$_GET = $old_get; // restore
 
 // 3. Calculate Real-time Dashboard Metrics from live data
 $catalog_size = count($inventory);

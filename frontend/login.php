@@ -8,16 +8,33 @@ $alert_type = '';
 
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $_GET['action'] = 'login';
+    $email = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
     
-    // Capture the JSON response from user-service auth
-    ob_start();
-    require __DIR__ . '/../user-service/api/auth.php';
-    $response = json_decode(ob_get_clean(), true);
+    $response = makeServiceRequest(USER_SERVICE_URL . '?action=login', 'POST', [
+        'email' => $email,
+        'password' => $password
+    ]);
     
     if ($response && ($response['status'] ?? '') === 'success') {
         $alert_message = $response['message'] ?? 'Login successful!';
         $alert_type = 'success';
+        
+        $_SESSION['is_logged_in'] = true;
+        $_SESSION['user_email'] = $response['email'];
+        $_SESSION['user_role'] = $response['role'];
+        
+        // Fetch all users via HTTP to retrieve fullname and user_id
+        $usersResponse = makeServiceRequest(USER_SERVICE_URL, 'GET');
+        if ($usersResponse && isset($usersResponse['data'])) {
+            foreach ($usersResponse['data'] as $u) {
+                if ($u['email'] === $response['email']) {
+                    $_SESSION['user_id'] = $u['id'];
+                    $_SESSION['user_fullname'] = $u['fullname'];
+                    break;
+                }
+            }
+        }
         
         // Redirect user to home screen on successful authentication
         echo "<script>
@@ -33,20 +50,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Handle logout action
 if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    $_GET['action'] = 'logout';
+    makeServiceRequest(USER_SERVICE_URL . '?action=logout', 'GET');
     
-    // Capture response from logout handler
-    ob_start();
-    require __DIR__ . '/../user-service/api/auth.php';
-    $response = json_decode(ob_get_clean(), true);
-    
-    if ($response && ($response['status'] ?? '') === 'success') {
-        $alert_message = "You have been logged out successfully.";
-        $alert_type = "info";
-    } else {
-        $alert_message = "Logout failed.";
-        $alert_type = "danger";
+    // Clear and destroy frontend session
+    $_SESSION = [];
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
     }
+    session_destroy();
+    
+    $alert_message = "You have been logged out successfully.";
+    $alert_type = "info";
 }
 header('Content-Type: text/html; charset=utf-8');
 ?>

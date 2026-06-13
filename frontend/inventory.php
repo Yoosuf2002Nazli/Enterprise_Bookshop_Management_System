@@ -28,17 +28,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'restock') {
     $qty = (int)($_GET['qty'] ?? 10);
     
     // Call inventory-service to restock item
-    $old_get = $_GET;
-    $_GET = [
-        'action' => 'restock',
-        'id' => $item_id,
-        'qty' => $qty
-    ];
-    
-    ob_start();
-    require __DIR__ . '/../inventory-service/api/inventory.php';
-    $restock_res = json_decode(ob_get_clean(), true);
-    $_GET = $old_get; // restore GET
+    $restock_res = makeServiceRequest(INVENTORY_SERVICE_URL . '?action=restock&id=' . $item_id . '&qty=' . $qty, 'GET');
     
     if ($restock_res && ($restock_res['status'] ?? '') === 'success') {
         $alert_message = "Stock replenished! Added <strong>+{$qty}</strong> copies for item ID #{$item_id}.";
@@ -54,17 +44,13 @@ $filter_low_stock = isset($_GET['filter']) && $_GET['filter'] === 'low';
 $search_query = isset($_GET['search']) ? trim($_GET['search']) : '';
 
 // Load inventory data from API
-$old_get = $_GET;
-$_GET = [];
+$params = [];
 if ($filter_low_stock) {
-    $_GET['filter'] = 'low';
+    $params['filter'] = 'low';
 }
 
-ob_start();
-require __DIR__ . '/../inventory-service/api/inventory.php';
-$inv_response = json_decode(ob_get_clean(), true);
+$inv_response = makeServiceRequest(INVENTORY_SERVICE_URL, 'GET', $params);
 $inventory_data = $inv_response['data'] ?? [];
-$_GET = $old_get; // restore GET
 
 // Filter by search query if set
 $filtered_inventory = [];
